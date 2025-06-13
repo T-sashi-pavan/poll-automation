@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Audio to Poll Generator (TS)</title>
+    <!-- The line below is what connects this HTML file to your style.css -->
+    <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+    <div class="container">
+        <h1>🎤 Audio to Poll Generator</h1>
+        <div class="input-section">
+            <div class="input-container">
+                <textarea 
+                    class="speech-input" 
+                    id="speechInput" 
+                    placeholder="Click the microphone to speak your topic..."
+                    rows="3"
+                ></textarea>
+                <button class="audio-button" id="audioButton" title="Click to speak">🎤</button>
+            </div>
+            <button class="generate-button" id="generateButton">Generate Poll Question</button>
+            <div class="status-message" id="statusMessage">Click the microphone to start</div>
+        </div>
+        <div class="poll-section" id="pollSection" style="display: none;">
+            <div class="poll-container" id="pollContainer">
+                <!-- Poll content will be inserted here by TypeScript -->
+            </div>
+        </div>
+    </div>
+    <!-- This line connects to your TypeScript logic -->
+    <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
