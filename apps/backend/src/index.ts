@@ -6,7 +6,7 @@ import dotenv from 'dotenv';
 import cors from 'cors';
 import saveQuestionsRouter from './web/routes/save_questions';
 import { connectDB } from './web/config/dbconnect';
-import hostSettingsRoutes from './web/routes/hostSettingsRoutes';
+import pollConfigRoutes from './web/routes/pollConfigRoutes';
 dotenv.config();
 
 connectDB();
@@ -18,7 +18,7 @@ app.use(cors());
 app.use(express.json());
 app.use('/settings', settingsRouter);
 app.use('/questions', saveQuestionsRouter);
-app.use('/host-settings', hostSettingsRoutes);
+app.use('/api/poll', pollConfigRoutes);
 app.get('/', (_req, res) => {
   res.send('PollGen Backend is running.');
 });
