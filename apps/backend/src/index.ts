@@ -1,20 +1,24 @@
 import express from 'express';
 import http from 'http';
 import { setupWebSocketServer } from './websocket/connection';
-import settingsRouter from "./web/routes/settings";
+import settingsRouter from './web/routes/settings';
 import dotenv from 'dotenv';
-import cors from 'cors'; 
-import saveQuestionsRouter from "./web/routes/save_questions";
-
+import cors from 'cors';
+import saveQuestionsRouter from './web/routes/save_questions';
+import { connectDB } from './web/config/dbconnect';
+import hostSettingsRoutes from './web/routes/hostSettingsRoutes';
 dotenv.config();
+
+connectDB();
 
 const app = express();
 const server = http.createServer(app);
 
-app.use(cors()); 
+app.use(cors());
 app.use(express.json());
-app.use("/settings", settingsRouter);
-app.use("/questions", saveQuestionsRouter);
+app.use('/settings', settingsRouter);
+app.use('/questions', saveQuestionsRouter);
+app.use('/host-settings', hostSettingsRoutes);
 app.get('/', (_req, res) => {
   res.send('PollGen Backend is running.');
 });
