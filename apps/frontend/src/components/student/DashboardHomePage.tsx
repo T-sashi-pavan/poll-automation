@@ -14,15 +14,18 @@ const DashboardHomePage = () => {
       transition={{ duration: 0.5 }}
       className="space-y-6"
     >
-      <div className="flex justify-end mb-4">
-        <button
-          onClick={() => navigate("/host")}
-          className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-xs sm:text-sm font-medium transition"
-        >
-          Switch to Host
-        </button>
-      </div>
-      <WelcomeSection />
+      {/* Welcome Section and Switch Button */}
+      <WelcomeSection>
+        <div className="flex justify-end mb-4">
+          <button
+            onClick={() => navigate("/host")}
+            className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-xs sm:text-sm font-medium transition"
+          >
+            Switch to Host
+          </button>
+        </div>
+      </WelcomeSection>
+      {/* Today's Highlights and Quick Actions */}
       <QuickAccessCards onSectionChange={(section: string) => { /* handle section change here */ }} />
       {/* Recent Activity */}
       <GlassCard className="p-6">
