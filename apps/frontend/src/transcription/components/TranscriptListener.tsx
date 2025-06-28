@@ -44,7 +44,7 @@ const TranscriptListener = () => {
   }, []);
 
     const getSpeakerTag = (role: string) => {
-
+    if (!role) return "[Participant]";
   };
 
 
