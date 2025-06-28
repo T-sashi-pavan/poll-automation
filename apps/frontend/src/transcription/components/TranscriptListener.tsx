@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 
 type TranscriptItem = {
-
+  text: string;
+  speaker: string;
+}; 
 
 const TranscriptListener = () => {
   const [transcripts, setTranscripts] = useState<TranscriptItem[]>([]);
@@ -40,6 +42,10 @@ const TranscriptListener = () => {
       socket.close();
     };
   }, []);
+
+    const getSpeakerTag = (role: string) => {
+
+  };
 
 
   return (
