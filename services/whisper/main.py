@@ -35,30 +35,6 @@ async def health_check():
     """Health check endpoint."""
     return {"status": "healthy", "service": "whisper-transcription"}
 
-# --- HTTP Routes ---
-@app.get("/health")
-async def health_check():
-    """Health check endpoint."""
-    # Returns a JSON response indicating the service status
-    return {"status": "healthy", "service": "whisper-transcription"}
-
-@app.websocket("/")
-async def websocket_endpoint(websocket: WebSocket):
-    """Real-time transcription WebSocket endpoint."""
-    # Generate a unique session ID for each WebSocket connection
-    session_id = str(uuid.uuid4())
-    # Initialize session data with default values
-    session_data = {
-        "session_id": session_id,
-        "websocket": websocket,
-        "meeting_id": "N/A",
-        "speaker": "N/A",
-        "audio_buffer": io.BytesIO(),  # Buffer to store incoming audio data
-        "transcript_queue": asyncio.Queue(),  # Queue for storing transcription results
-        "shutdown_event": asyncio.Event(),  # Event to signal shutdown
-        "transcription_finished_event": asyncio.Event()  # Event to signal transcription completion
-    }
-
 @app.websocket("/")
 async def websocket_endpoint(websocket: WebSocket):
     """Real-time transcription WebSocket endpoint."""
