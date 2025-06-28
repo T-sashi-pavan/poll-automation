@@ -59,35 +59,25 @@ async def websocket_endpoint(websocket: WebSocket):
         "transcription_finished_event": asyncio.Event()  # Event to signal transcription completion
     }
 
-    try:
-        # Log the connection attempt
-        logger.info(f"[{session_id}] WebSocket connection attempt from {websocket.client}")
-        await websocket.accept()  # Accept the WebSocket connection
-        # Log the successful connection
-        logger.info(f"[{session_id}] WebSocket connection accepted")
+    # Log the connection attempt
+    logger.info(f"[{session_id}] WebSocket connection attempt from {websocket.client}")
+    await websocket.accept()  # Accept the WebSocket connection
+    # Log the successful connection
+    logger.info(f"[{session_id}] WebSocket connection accepted")
 
-        # Send a confirmation message to the client
-        await websocket.send_text(json.dumps({
-            "type": "status",
-            "message": "Connected to Whisper service"
-        }))
+    # Send a confirmation message to the client
+    await websocket.send_text(json.dumps({
+        "type": "status",
+        "message": "Connected to Whisper service"
+    }))
 
-        # Initialize the audio processor for handling audio data
-        processor = AudioProcessor(session_data)
+    # Initialize the audio processor for handling audio data
+    processor = AudioProcessor(session_data)
 
-        # Main message loop to handle incoming WebSocket messages
-        while True:
-            try:
-                # Code for processing incoming messages will be here
-                pass
-            except WebSocketDisconnect:
-                # Handle WebSocket disconnection
-                logger.info(f"[{session_id}] WebSocket disconnected")
-                break
-            except Exception as e:
-                # Log any unexpected exceptions
-                logger.error(f"[{session_id}] Error: {e}")
-                break
+    # Main message loop to handle incoming WebSocket messages
+    while True:
+        # Code for processing incoming messages will be here
+        pass
 
 @app.websocket("/")
 async def websocket_endpoint(websocket: WebSocket):
