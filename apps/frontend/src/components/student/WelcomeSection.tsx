@@ -5,7 +5,7 @@ import { Trophy, Target, Award, Users } from "lucide-react"
 import { useAuth } from "../../contexts/AuthContext"
 import GlassCard from "../GlassCard"
 
-const WelcomeSection: React.FC = () => {
+const WelcomeSection: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
   const { user } = useAuth()
 
   const stats = [
@@ -46,7 +46,7 @@ const WelcomeSection: React.FC = () => {
         <h1 className="text-4xl font-bold text-white mb-2">Welcome back, {user?.name || "Student"}! 🎉</h1>
         <p className="text-gray-400 text-lg">Ready to participate in today's polls and climb the leaderboard?</p>
       </div>
-
+      {children && <div>{children}</div>}
       {/* Today's Highlights */}
       <GlassCard className="p-6">
         <h2 className="text-2xl font-bold text-white mb-6">Today's Highlights</h2>
