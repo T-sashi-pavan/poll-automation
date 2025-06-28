@@ -45,6 +45,8 @@ const TranscriptListener = () => {
 
     const getSpeakerTag = (role: string) => {
     if (!role) return "[Participant]";
+    const lower = role.toLowerCase();
+    
   };
 
 
