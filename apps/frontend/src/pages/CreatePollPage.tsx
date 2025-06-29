@@ -1,8 +1,8 @@
-"use client"
+"use client";
 
-import type React from "react"
-import { useState, useCallback, useEffect } from "react"
-import { motion, AnimatePresence } from "framer-motion"
+import type React from "react";
+import { useState, useCallback, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Hash,
   Upload,
@@ -18,31 +18,32 @@ import {
   Play,
   Plus,
   Trash2,
-} from "lucide-react"
-import GlassCard from "../components/GlassCard"
-import DashboardLayout from "../components/DashboardLayout"
-import * as XLSX from "xlsx"
+} from "lucide-react";
+import GlassCard from "../components/GlassCard";
+import DashboardLayout from "../components/DashboardLayout";
+import * as XLSX from "xlsx";
+import axios from "axios";
 
 interface StudentInvite {
-  name: string
-  email: string
+  name: string;
+  email: string;
 }
 
 const POLL_STORAGE_KEY = "activePollSession";
 
 const CreatePollPage: React.FC = () => {
-  const [roomCode, setRoomCode] = useState("")
-  const [csvFile, setCsvFile] = useState<File | null>(null)
-  const [students, setStudents] = useState<StudentInvite[]>([])
-  const [isDragOver, setIsDragOver] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
-  const [isSendingInvites, setIsSendingInvites] = useState(false)
-  const [isDestroying, setIsDestroying] = useState(false)
-  const [showPreview, setShowPreview] = useState(false)
-  const [errors, setErrors] = useState<{ csv?: string }>({})
-  const [isPollActive, setIsPollActive] = useState(false)
-  const [timeRemaining, setTimeRemaining] = useState(3 * 60 * 60) // 3 hours in seconds
-  const [invitesSent, setInvitesSent] = useState(false)
+  const [roomCode, setRoomCode] = useState("");
+  const [csvFile, setCsvFile] = useState<File | null>(null);
+  const [students, setStudents] = useState<StudentInvite[]>([]);
+  const [isDragOver, setIsDragOver] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSendingInvites, setIsSendingInvites] = useState(false);
+  const [isDestroying, setIsDestroying] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
+  const [errors, setErrors] = useState<{ csv?: string }>({});
+  const [isPollActive, setIsPollActive] = useState(false);
+  const [timeRemaining, setTimeRemaining] = useState(3 * 60 * 60); // 3 hours in seconds
+  const [invitesSent, setInvitesSent] = useState(false);
   const [roomName, setRoomName] = useState("");
   const [roomNameError, setRoomNameError] = useState("");
 
@@ -91,222 +92,277 @@ const CreatePollPage: React.FC = () => {
 
   // Generate random room code
   const generateRoomCode = (): string => {
-    const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-    let result = ""
+    const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    let result = "";
     for (let i = 0; i < 6; i++) {
-      result += characters.charAt(Math.floor(Math.random() * characters.length))
+      result += characters.charAt(
+        Math.floor(Math.random() * characters.length)
+      );
     }
-    return result
-  }
+    return result;
+  };
 
   // Handle room code regeneration
   const handleRegenerateCode = () => {
     if (!isPollActive) {
-      setRoomCode(generateRoomCode())
+      setRoomCode(generateRoomCode());
     }
-  }
+  };
 
   // Handle destroy room
   const handleDestroyRoom = () => {
-    setIsDestroying(true)
+    setIsDestroying(true);
     setTimeout(() => {
-      setIsPollActive(false)
-      setTimeRemaining(3 * 60 * 60) // Reset to 3 hours
-      setRoomCode(generateRoomCode()) // Generate new code
-      setIsDestroying(false)
-      localStorage.removeItem(POLL_STORAGE_KEY) // Clear persisted session
-      console.log("Room destroyed and reset")
-    }, 1500)
-  }
+      setIsPollActive(false);
+      setTimeRemaining(3 * 60 * 60); // Reset to 3 hours
+      setRoomCode(generateRoomCode()); // Generate new code
+      setIsDestroying(false);
+      localStorage.removeItem(POLL_STORAGE_KEY); // Clear persisted session
+      console.log("Room destroyed and reset");
+    }, 1500);
+  };
 
   // Format time remaining
   const formatTime = (seconds: number): string => {
-    const hours = Math.floor(seconds / 3600)
-    const minutes = Math.floor((seconds % 3600) / 60)
-    const secs = seconds % 60
-    return `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`
-  }
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    return `${hours.toString().padStart(2, "0")}:${minutes
+      .toString()
+      .padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+  };
 
   // Timer effect
   useEffect(() => {
-    let interval: NodeJS.Timeout
+    let interval: NodeJS.Timeout;
     if (isPollActive && timeRemaining > 0) {
       interval = setInterval(() => {
         setTimeRemaining((prev) => {
           if (prev <= 1) {
-            setIsPollActive(false)
-            return 0
+            setIsPollActive(false);
+            return 0;
           }
-          return prev - 1
-        })
-      }, 1000)
+          return prev - 1;
+        });
+      }, 1000);
     }
-    return () => clearInterval(interval)
-  }, [isPollActive, timeRemaining])
+    return () => clearInterval(interval);
+  }, [isPollActive, timeRemaining]);
 
   // Extend time
   const handleExtendTime = (hours: number) => {
-    setTimeRemaining((prev) => prev + hours * 60 * 60)
-  }
-
-
-
-
+    setTimeRemaining((prev) => prev + hours * 60 * 60);
+  };
 
   // Parse CSV content
   const parseCSV = (content: string): StudentInvite[] => {
-    const lines = content.split("\n").filter((line) => line.trim())
+    const lines = content.split("\n").filter((line) => line.trim());
     const headers = lines[0]
       .toLowerCase()
       .split(",")
-      .map((h) => h.trim())
+      .map((h) => h.trim());
 
-    const emailIndex = headers.findIndex((h) => h.includes("email"))
-    const nameIndex = headers.findIndex((h) => h.includes("name"))
+    const emailIndex = headers.findIndex((h) => h.includes("email"));
+    const nameIndex = headers.findIndex((h) => h.includes("name"));
 
     if (emailIndex === -1) {
-      throw new Error("CSV must contain an 'email' column")
+      throw new Error("CSV must contain an 'email' column");
     }
 
     return lines
       .slice(1)
       .map((line) => {
-        const values = line.split(",").map((v) => v.trim())
+        const values = line.split(",").map((v) => v.trim());
         return {
           name: nameIndex !== -1 ? values[nameIndex] || "Unknown" : "Unknown",
           email: values[emailIndex] || "",
-        }
+        };
       })
-      .filter((student) => student.email)
-  }
+      .filter((student) => student.email);
+  };
 
   // Handle file upload (CSV or Excel)
   const handleFileUpload = useCallback(async (file: File) => {
-    const isCSV = file.name.endsWith(".csv")
-    const isXLS = file.name.endsWith(".xls") || file.name.endsWith(".xlsx")
+    const isCSV = file.name.endsWith(".csv");
+    const isXLS = file.name.endsWith(".xls") || file.name.endsWith(".xlsx");
 
     if (!isCSV && !isXLS) {
-      setErrors((prev) => ({ ...prev, csv: "Please upload a .csv or .xls/.xlsx file" }))
-      return
+      setErrors((prev) => ({
+        ...prev,
+        csv: "Please upload a .csv or .xls/.xlsx file",
+      }));
+      return;
     }
 
-    setIsLoading(true)
-    setErrors((prev) => ({ ...prev, csv: undefined }))
+    setIsLoading(true);
+    setErrors((prev) => ({ ...prev, csv: undefined }));
 
     try {
-      let parsedStudents: StudentInvite[] = []
+      let parsedStudents: StudentInvite[] = [];
 
       if (isCSV) {
-        const content = await file.text()
-        parsedStudents = parseCSV(content)
+        const content = await file.text();
+        parsedStudents = parseCSV(content);
       } else if (isXLS) {
-        const data = await file.arrayBuffer()
-        const workbook = XLSX.read(data, { type: "array" })
-        const sheet = workbook.Sheets[workbook.SheetNames[0]]
-        const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 }) as string[][]
+        const data = await file.arrayBuffer();
+        const workbook = XLSX.read(data, { type: "array" });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(sheet, {
+          header: 1,
+        }) as string[][];
 
-        const headers = rows[0].map((h) => h.toLowerCase().trim())
-        const emailIndex = headers.findIndex((h) => h.includes("email"))
-        const nameIndex = headers.findIndex((h) => h.includes("name"))
+        const headers = rows[0].map((h) => h.toLowerCase().trim());
+        const emailIndex = headers.findIndex((h) => h.includes("email"));
+        const nameIndex = headers.findIndex((h) => h.includes("name"));
 
         if (emailIndex === -1) {
-          throw new Error("File must contain an 'email' column")
+          throw new Error("File must contain an 'email' column");
         }
 
         parsedStudents = rows
           .slice(1)
           .filter((row) => row[emailIndex])
           .map((row) => ({
-            name: nameIndex !== -1 ? row[nameIndex]?.toString().trim() || "Unknown" : "Unknown",
+            name:
+              nameIndex !== -1
+                ? row[nameIndex]?.toString().trim() || "Unknown"
+                : "Unknown",
             email: row[emailIndex]?.toString().trim() || "",
-          }))
+          }));
       }
 
       if (parsedStudents.length === 0) {
-        throw new Error("No valid student records found")
+        throw new Error("No valid student records found");
       }
 
-      setStudents(parsedStudents)
-      setCsvFile(file)
-      setShowPreview(true)
+      setStudents(parsedStudents);
+      setCsvFile(file);
+      setShowPreview(true);
     } catch (error) {
       setErrors((prev) => ({
         ...prev,
-        csv: error instanceof Error ? error.message : "Failed to parse the file",
-      }))
-      setStudents([])
-      setCsvFile(null)
+        csv:
+          error instanceof Error ? error.message : "Failed to parse the file",
+      }));
+      setStudents([]);
+      setCsvFile(null);
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }, [])
+  }, []);
 
   // Handle drag and drop
   const handleDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault()
-    setIsDragOver(true)
-  }, [])
+    e.preventDefault();
+    setIsDragOver(true);
+  }, []);
 
   const handleDragLeave = useCallback((e: React.DragEvent) => {
-    e.preventDefault()
-    setIsDragOver(false)
-  }, [])
-
+    e.preventDefault();
+    setIsDragOver(false);
+  }, []);
   const handleDrop = useCallback(
     (e: React.DragEvent) => {
-      e.preventDefault()
-      setIsDragOver(false)
+      e.preventDefault();
+      setIsDragOver(false);
 
-      const files = Array.from(e.dataTransfer.files)
+      const files = Array.from(e.dataTransfer.files);
       if (files.length > 0) {
-        handleFileUpload(files[0])
+        handleFileUpload(files[0]);
       }
     },
-    [handleFileUpload],
-  )
+    [handleFileUpload]
+  );
 
   // Handle file input change
   const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files
+    const files = e.target.files;
     if (files && files.length > 0) {
-      handleFileUpload(files[0])
+      handleFileUpload(files[0]);
     }
-  }
+  };
 
   // Remove uploaded file
   const removeFile = () => {
-    setCsvFile(null)
-    setStudents([])
-    setShowPreview(false)
-    setInvitesSent(false)
-    setErrors((prev) => ({ ...prev, csv: undefined }))
-  }
+    setCsvFile(null);
+    setStudents([]);
+    setShowPreview(false);
+    setInvitesSent(false);
+    setErrors((prev) => ({ ...prev, csv: undefined }));
+  };
 
   // Handle send invites
   const handleSendInvites = () => {
-    if (students.length === 0) return
+    if (students.length === 0) return;
 
-    setIsSendingInvites(true)
+    setIsSendingInvites(true);
     setTimeout(() => {
-      setIsSendingInvites(false)
-      setInvitesSent(true)
-      console.log("Invites sent to:", students)
-    }, 2000)
-  }
+      setIsSendingInvites(false);
+      setInvitesSent(true);
+      console.log("Invites sent to:", students);
+    }, 2000);
+  };
 
   // Handle create poll
-  const handleCreatePoll = () => {
+  const handleCreatePoll = async () => {
     if (!roomName.trim()) {
       setRoomNameError("Room Name is required.");
       return;
     }
+
     setRoomNameError(""); // Clear error if valid
     setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
+
+    try {
+      console.log("Creating poll with data:", {
+        room_code: roomCode,
+        room_title: roomName,
+        user_id: "user_123456789",
+      });
+
+      const response = await axios.post(
+        "http://localhost:4000/api/room-code/polls",
+        {
+          room_code: roomCode,
+          room_title: roomName, // Changed from room_name to room_title to match backend
+          user_id: "user_123456789", // Replace with actual user ID from auth context
+        }
+      );
+
+      console.log("Poll created successfully:", response.data);
+
+      // Set poll as active immediately after successful API call
       setIsPollActive(true);
-      console.log("Poll created with room code:", roomCode);
-    }, 2000);
+      setIsLoading(false);
+
+      // Optional: Show success notification
+      // You could add a toast notification here
+    } catch (error) {
+      console.error("Error creating poll:", error);
+      setIsLoading(false);
+
+      // Handle different types of errors
+      if (axios.isAxiosError(error)) {
+        if (error.response) {
+          // Server responded with error status
+          const errorMessage =
+            error.response.data?.message || "Failed to create poll";
+          setRoomNameError(errorMessage);
+          console.error("Server error:", error.response.status, errorMessage);
+        } else if (error.request) {
+          // Network error
+          setRoomNameError("Network error. Please check your connection.");
+          console.error("Network error:", error.request);
+        } else {
+          // Other error
+          setRoomNameError("An unexpected error occurred.");
+          console.error("Error:", error.message);
+        }
+      } else {
+        setRoomNameError("An unexpected error occurred.");
+        console.error("Unknown error:", error);
+      }
+    }
   };
 
   return (
@@ -320,8 +376,12 @@ const CreatePollPage: React.FC = () => {
             transition={{ duration: 0.5 }}
             className="text-center"
           >
-            <h1 className="text-3xl sm:text-4xl font-bold text-white mb-2">Create A New Poll Session</h1>
-            <p className="text-gray-400 text-lg">Set up your room code and optionally invite students</p>
+            <h1 className="text-3xl sm:text-4xl font-bold text-white mb-2">
+              Create A New Poll Session
+            </h1>
+            <p className="text-gray-400 text-lg">
+              Set up your room code and optionally invite students
+            </p>
           </motion.div>
 
           <div className="grid lg:grid-cols-2 gap-8">
@@ -337,13 +397,14 @@ const CreatePollPage: React.FC = () => {
                     <Hash className="w-5 h-5 text-white" />
                   </div>
 
-                  <h2 className="text-xl font-semibold text-white">Room Code</h2>
+                  <h2 className="text-xl font-semibold text-white">
+                    Room Code
+                  </h2>
                   {isPollActive && (
                     <div className="px-2 py-1 bg-green-500/20 text-green-400 text-xs rounded-full border border-green-500/30">
                       ACTIVE
                     </div>
                   )}
-
                 </div>
                 {/* Room Name input */}
                 <div className="mb-4">
@@ -353,12 +414,14 @@ const CreatePollPage: React.FC = () => {
                   <input
                     type="text"
                     value={roomName}
-                    onChange={e => {
+                    onChange={(e) => {
                       setRoomName(e.target.value);
                       if (e.target.value.trim()) setRoomNameError(""); // Clear error on input
                     }}
                     placeholder="Enter a room name (e.g. Math Quiz, Science Poll)"
-                    className={`w-full px-4 py-2 bg-white/5 border ${roomNameError ? "border-red-500" : "border-white/10"} rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition`}
+                    className={`w-full px-4 py-2 bg-white/5 border ${
+                      roomNameError ? "border-red-500" : "border-white/10"
+                    } rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition`}
                     maxLength={50}
                     required
                   />
@@ -369,15 +432,24 @@ const CreatePollPage: React.FC = () => {
                 <div className="space-y-4">
                   <div className="relative">
                     <div
-                      className={`w-full px-4 py-6 bg-white/5 border rounded-lg text-center transition-all duration-300 ${isPollActive ? "border-green-500/30 bg-green-500/5" : "border-white/10"
-                        }`}
+                      className={`w-full px-4 py-6 bg-white/5 border rounded-lg text-center transition-all duration-300 ${
+                        isPollActive
+                          ? "border-green-500/30 bg-green-500/5"
+                          : "border-white/10"
+                      }`}
                     >
-                      <div className="text-3xl font-bold text-white tracking-wider mb-2">{roomCode}</div>
+                      <div className="text-3xl font-bold text-white tracking-wider mb-2">
+                        {roomCode}
+                      </div>
                       {/* Show the room name here */}
                       {roomName && (
-                        <p className="text-primary-400 text-base font-semibold mt-2">{roomName}</p>
+                        <p className="text-primary-400 text-base font-semibold mt-2">
+                          {roomName}
+                        </p>
                       )}
-                      <p className="text-gray-400 text-sm">Share this code with participants</p>
+                      <p className="text-gray-400 text-sm">
+                        Share this code with participants
+                      </p>
                     </div>
                   </div>
 
@@ -387,15 +459,22 @@ const CreatePollPage: React.FC = () => {
                       whileTap={!isPollActive ? { scale: 0.95 } : {}}
                       onClick={handleRegenerateCode}
                       disabled={isPollActive}
-                      className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-all duration-200 ${isPollActive
-                        ? "bg-gray-600 text-gray-400 cursor-not-allowed"
-                        : "bg-gradient-to-r from-primary-500 to-secondary-500 text-white hover:shadow-lg"
-                        }`}
+                      className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-all duration-200 ${
+                        isPollActive
+                          ? "bg-gray-600 text-gray-400 cursor-not-allowed"
+                          : "bg-gradient-to-r from-primary-500 to-secondary-500 text-white hover:shadow-lg"
+                      }`}
                     >
                       <RefreshCw
-                        className={`w-4 h-4 ${isPollActive ? "" : "hover:rotate-180 transition-transform duration-300"}`}
+                        className={`w-4 h-4 ${
+                          isPollActive
+                            ? ""
+                            : "hover:rotate-180 transition-transform duration-300"
+                        }`}
                       />
-                      <span>{isPollActive ? "Code Locked" : "Generate New Code"}</span>
+                      <span>
+                        {isPollActive ? "Code Locked" : "Generate New Code"}
+                      </span>
                     </motion.button>
 
                     {/* Destroy Room Button */}
@@ -409,10 +488,11 @@ const CreatePollPage: React.FC = () => {
                           whileTap={{ scale: 0.95 }}
                           onClick={handleDestroyRoom}
                           disabled={isDestroying}
-                          className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-all duration-200 ${isDestroying
-                            ? "bg-gray-600 text-gray-400 cursor-not-allowed"
-                            : "bg-gradient-to-r from-red-500 to-pink-500 text-white hover:shadow-lg"
-                            }`}
+                          className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-all duration-200 ${
+                            isDestroying
+                              ? "bg-gray-600 text-gray-400 cursor-not-allowed"
+                              : "bg-gradient-to-r from-red-500 to-pink-500 text-white hover:shadow-lg"
+                          }`}
                         >
                           {isDestroying ? (
                             <>
@@ -432,7 +512,9 @@ const CreatePollPage: React.FC = () => {
 
                   <div className="flex items-center space-x-2 text-gray-400 text-sm">
                     <Users className="w-4 h-4" />
-                    <span>Students will use this code to join your poll session</span>
+                    <span>
+                      Students will use this code to join your poll session
+                    </span>
                   </div>
                 </div>
 
@@ -443,12 +525,13 @@ const CreatePollPage: React.FC = () => {
                     whileTap={!isPollActive ? { scale: 0.98 } : {}}
                     onClick={handleCreatePoll}
                     disabled={isPollActive || isLoading}
-                    className={`w-full px-6 py-4 rounded-lg font-semibold text-lg transition-all duration-200 ${isPollActive
-                      ? "bg-green-600 text-white cursor-default"
-                      : isLoading
+                    className={`w-full px-6 py-4 rounded-lg font-semibold text-lg transition-all duration-200 ${
+                      isPollActive
+                        ? "bg-green-600 text-white cursor-default"
+                        : isLoading
                         ? "bg-gray-600 text-gray-400 cursor-not-allowed"
                         : "bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-lg hover:shadow-xl"
-                      }`}
+                    }`}
                   >
                     {isLoading ? (
                       <div className="flex items-center justify-center space-x-2">
@@ -482,7 +565,9 @@ const CreatePollPage: React.FC = () => {
                   <div className="w-10 h-10 bg-gradient-to-r from-green-500 to-teal-500 rounded-lg flex items-center justify-center">
                     <Users className="w-5 h-5 text-white" />
                   </div>
-                  <h2 className="text-xl font-semibold text-white">Invite Students</h2>
+                  <h2 className="text-xl font-semibold text-white">
+                    Invite Students
+                  </h2>
                   <div className="px-2 py-1 bg-blue-500/20 text-blue-400 text-xs rounded-full border border-blue-500/30">
                     OPTIONAL
                   </div>
@@ -494,12 +579,13 @@ const CreatePollPage: React.FC = () => {
                     onDragOver={handleDragOver}
                     onDragLeave={handleDragLeave}
                     onDrop={handleDrop}
-                    className={`relative border-2 border-dashed rounded-lg p-8 text-center transition-all duration-200 ${isDragOver
-                      ? "border-primary-500/50 bg-primary-500/10"
-                      : errors.csv
+                    className={`relative border-2 border-dashed rounded-lg p-8 text-center transition-all duration-200 ${
+                      isDragOver
+                        ? "border-primary-500/50 bg-primary-500/10"
+                        : errors.csv
                         ? "border-red-500/50 bg-red-500/5"
                         : "border-white/20 hover:border-white/30"
-                      }`}
+                    }`}
                   >
                     <input
                       type="file"
@@ -509,15 +595,22 @@ const CreatePollPage: React.FC = () => {
                     />
 
                     <div className="space-y-4">
-                      <motion.div animate={{ scale: isDragOver ? 1.1 : 1 }} transition={{ duration: 0.2 }}>
+                      <motion.div
+                        animate={{ scale: isDragOver ? 1.1 : 1 }}
+                        transition={{ duration: 0.2 }}
+                      >
                         <Upload className="w-12 h-12 text-gray-400 mx-auto" />
                       </motion.div>
 
                       <div>
                         <p className="text-white font-medium">
-                          {isDragOver ? "Drop your CSV file here" : "Drag & drop your CSV or Excel file"}
+                          {isDragOver
+                            ? "Drop your CSV file here"
+                            : "Drag & drop your CSV or Excel file"}
                         </p>
-                        <p className="text-gray-400 text-sm mt-1">or click to browse files</p>
+                        <p className="text-gray-400 text-sm mt-1">
+                          or click to browse files
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -549,11 +642,18 @@ const CreatePollPage: React.FC = () => {
                         <div className="flex items-center space-x-3">
                           <FileText className="w-5 h-5 text-green-400" />
                           <div>
-                            <p className="text-white text-sm font-medium">{csvFile.name}</p>
-                            <p className="text-gray-400 text-xs">{students.length} students found</p>
+                            <p className="text-white text-sm font-medium">
+                              {csvFile.name}
+                            </p>
+                            <p className="text-gray-400 text-xs">
+                              {students.length} students found
+                            </p>
                           </div>
                         </div>
-                        <button onClick={removeFile} className="p-1 hover:bg-white/10 rounded transition-colors">
+                        <button
+                          onClick={removeFile}
+                          className="p-1 hover:bg-white/10 rounded transition-colors"
+                        >
                           <X className="w-4 h-4 text-gray-400" />
                         </button>
                       </motion.div>
@@ -563,7 +663,9 @@ const CreatePollPage: React.FC = () => {
                   {/* CSV Format Info */}
                   <div className="flex items-center space-x-2 text-gray-400 text-sm">
                     <FileText className="w-4 h-4" />
-                    <span>CSV must contain 'email' column (optional: 'name' column)</span>
+                    <span>
+                      CSV must contain 'email' column (optional: 'name' column)
+                    </span>
                   </div>
                 </div>
 
@@ -581,12 +683,13 @@ const CreatePollPage: React.FC = () => {
                         whileTap={!invitesSent ? { scale: 0.98 } : {}}
                         onClick={handleSendInvites}
                         disabled={invitesSent || isSendingInvites}
-                        className={`w-full px-6 py-4 rounded-lg font-semibold text-lg transition-all duration-200 ${invitesSent
-                          ? "bg-green-600 text-white cursor-default"
-                          : isSendingInvites
+                        className={`w-full px-6 py-4 rounded-lg font-semibold text-lg transition-all duration-200 ${
+                          invitesSent
+                            ? "bg-green-600 text-white cursor-default"
+                            : isSendingInvites
                             ? "bg-gray-600 text-gray-400 cursor-not-allowed"
                             : "bg-gradient-to-r from-primary-500 to-secondary-500 text-white shadow-lg hover:shadow-xl"
-                          }`}
+                        }`}
                       >
                         {isSendingInvites ? (
                           <div className="flex items-center justify-center space-x-2">
@@ -601,7 +704,9 @@ const CreatePollPage: React.FC = () => {
                         ) : (
                           <div className="flex items-center justify-center space-x-2">
                             <Mail className="w-5 h-5" />
-                            <span>Send Invites to {students.length} Students</span>
+                            <span>
+                              Send Invites to {students.length} Students
+                            </span>
                           </div>
                         )}
                       </motion.button>
@@ -626,32 +731,47 @@ const CreatePollPage: React.FC = () => {
                     <div className="w-10 h-10 bg-gradient-to-r from-orange-500 to-red-500 rounded-lg flex items-center justify-center">
                       <Clock className="w-5 h-5 text-white" />
                     </div>
-                    <h3 className="text-xl font-semibold text-white">Session Timer</h3>
+                    <h3 className="text-xl font-semibold text-white">
+                      Session Timer
+                    </h3>
                   </div>
 
                   <div className="grid md:grid-cols-2 gap-6">
                     <div className="text-center">
-                      <div className="text-4xl font-bold text-white mb-2 font-mono">{formatTime(timeRemaining)}</div>
+                      <div className="text-4xl font-bold text-white mb-2 font-mono">
+                        {formatTime(timeRemaining)}
+                      </div>
                       <p className="text-gray-400">Time Remaining</p>
                       {timeRemaining <= 600 && timeRemaining > 0 && (
                         <motion.p
                           animate={{ opacity: [1, 0.5, 1] }}
-                          transition={{ duration: 1, repeat: Number.POSITIVE_INFINITY }}
+                          transition={{
+                            duration: 1,
+                            repeat: Number.POSITIVE_INFINITY,
+                          }}
                           className="text-red-400 text-sm mt-2"
                         >
                           Session expires soon!
                         </motion.p>
                       )}
-                      {timeRemaining === 0 && <p className="text-red-400 text-sm mt-2">Session Expired</p>}
+                      {timeRemaining === 0 && (
+                        <p className="text-red-400 text-sm mt-2">
+                          Session Expired
+                        </p>
+                      )}
                     </div>
 
                     <div className="space-y-3">
-                      <p className="text-gray-400 text-sm mb-3">Extend session time:</p>
+                      <p className="text-gray-400 text-sm mb-3">
+                        Extend session time:
+                      </p>
                       <div className="grid grid-cols-2 gap-2">
                         <motion.button
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
-                          onClick={() => setTimeRemaining(prev => prev + 30 * 60)} // 30 mins in seconds
+                          onClick={() =>
+                            setTimeRemaining((prev) => prev + 30 * 60)
+                          } // 30 mins in seconds
                           className="flex items-center justify-center space-x-1 px-3 py-2 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-lg text-sm hover:shadow-lg transition-all duration-200"
                         >
                           <Plus className="w-3 h-3" />
@@ -707,7 +827,9 @@ const CreatePollPage: React.FC = () => {
                       <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
                         <Eye className="w-5 h-5 text-white" />
                       </div>
-                      <h3 className="text-xl font-semibold text-white">Student Preview ({students.length})</h3>
+                      <h3 className="text-xl font-semibold text-white">
+                        Student Preview ({students.length})
+                      </h3>
                       {invitesSent && (
                         <div className="px-2 py-1 bg-green-500/20 text-green-400 text-xs rounded-full border border-green-500/30">
                           INVITED
@@ -747,16 +869,24 @@ const CreatePollPage: React.FC = () => {
                                 {student.name.charAt(0).toUpperCase()}
                               </div>
                               <div className="flex-1 min-w-0">
-                                <p className="text-white text-sm font-medium truncate">{student.name}</p>
-                                <p className="text-gray-400 text-xs truncate">{student.email}</p>
+                                <p className="text-white text-sm font-medium truncate">
+                                  {student.name}
+                                </p>
+                                <p className="text-gray-400 text-xs truncate">
+                                  {student.email}
+                                </p>
                               </div>
-                              {invitesSent && <div className="w-2 h-2 bg-green-400 rounded-full"></div>}
+                              {invitesSent && (
+                                <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                              )}
                             </motion.div>
                           ))}
                         </div>
 
                         {students.length > 10 && (
-                          <p className="text-gray-400 text-sm text-center">+{students.length - 10} more students</p>
+                          <p className="text-gray-400 text-sm text-center">
+                            +{students.length - 10} more students
+                          </p>
                         )}
                       </motion.div>
                     )}
@@ -768,7 +898,7 @@ const CreatePollPage: React.FC = () => {
         </div>
       </div>
     </DashboardLayout>
-  )
-}
+  );
+};
 
-export default CreatePollPage
+export default CreatePollPage;

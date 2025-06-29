@@ -1,31 +1,46 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Hash, Users, Clock, User, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
-import { motion } from 'framer-motion';
-import PollQuestionsPage from './PollQuestionsPage';
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import {
+  Hash,
+  Users,
+  Clock,
+  User,
+  CheckCircle,
+  AlertCircle,
+  Loader2,
+} from "lucide-react";
+import { motion } from "framer-motion";
+import PollQuestionsPage from "./PollQuestionsPage";
+import axios from "axios";
+import { nav, tr } from "framer-motion/client";
 
 const JoinPollPage: React.FC = () => {
   const navigate = useNavigate();
-  const [roomCode, setRoomCode] = useState('');
+  const [roomCode, setRoomCode] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [roomCodeCheckError, setRoomCodeCheckError] = useState(false);
   const [isValidating, setIsValidating] = useState(false);
-  const [isJoining, setIsJoining] = useState(false);
   const [roomInfo, setRoomInfo] = useState<any>(null);
-  const [error, setError] = useState('');
-  const [joinStatus, setJoinStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [error, setError] = useState("");
+  const [joinStatus, setJoinStatus] = useState<"idle" | "success" | "error">(
+    "idle"
+  );
 
   // Format room code as user types (ABC-123 format)
   const formatRoomCode = (value: string) => {
-    const cleaned = value.replace(/[^A-Z0-9]/g, '').toUpperCase();
+    const cleaned = value.replace(/[^A-Z0-9]/g, "").toUpperCase();
     if (cleaned.length <= 3) return cleaned;
     return `${cleaned.slice(0, 3)}-${cleaned.slice(3, 6)}`;
   };
 
   const handleRoomCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // console.log('Room code input changed:', e.target.value, roomCode);
+
     const formatted = formatRoomCode(e.target.value);
     setRoomCode(formatted);
-    setError('');
+    setError("");
     setRoomInfo(null);
-    setJoinStatus('idle');
+    setJoinStatus("idle");
 
     // Validate room code when complete
     if (formatted.length === 7) {
@@ -35,86 +50,132 @@ const JoinPollPage: React.FC = () => {
 
   const validateRoomCode = async (code: string) => {
     setIsValidating(true);
-    setError('');
+    setError("");
 
     try {
       // Simulate API call to validate room code
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
       // Mock room validation logic
       const mockRooms = {
-        'ABC-123': {
-          title: 'Mathematics Quiz - Chapter 5',
-          host: 'Dr. Smith',
+        "ABC-123": {
+          title: "Mathematics Quiz - Chapter 5",
+          host: "Dr. Smith",
           participants: 24,
-          timeRemaining: '45 minutes',
-          status: 'active'
+          timeRemaining: "45 minutes",
+          status: "active",
         },
-        'XYZ-789': {
-          title: 'History Discussion',
-          host: 'Prof. Johnson',
+        "XYZ-789": {
+          title: "History Discussion",
+          host: "Prof. Johnson",
           participants: 18,
-          timeRemaining: '12 minutes',
-          status: 'active'
+          timeRemaining: "12 minutes",
+          status: "active",
         },
-        'DEF-456': {
-          title: 'Science Lab Poll',
-          host: 'Dr. Brown',
+        "DEF-456": {
+          title: "Science Lab Poll",
+          host: "Dr. Brown",
           participants: 0,
-          timeRemaining: 'Expired',
-          status: 'expired'
-        }
+          timeRemaining: "Expired",
+          status: "expired",
+        },
       };
 
       const room = mockRooms[code as keyof typeof mockRooms];
-      
+
       if (room) {
-        if (room.status === 'expired') {
-          setError('This room has expired. Please contact your instructor for a new room code.');
+        if (room.status === "expired") {
+          setError(
+            "This room has expired. Please contact your instructor for a new room code."
+          );
         } else {
           setRoomInfo(room);
         }
       } else {
-        setError('Invalid room code. Please check and try again.');
+        setError("Invalid room code. Please check and try again.");
       }
     } catch (err) {
-      setError('Failed to validate room code. Please try again.');
+      setError("Failed to validate room code. Please try again.");
     } finally {
       setIsValidating(false);
     }
   };
 
   const handleJoinPoll = async () => {
-    if (!roomInfo) return;
+    setLoading(true);
+    setError("");
 
-    setIsJoining(true);
     try {
-      // Simulate joining the poll
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      setJoinStatus('success');
-      
-      // Redirect to poll questions page after showing success message
-      setTimeout(() => {
-        navigate('/student/poll-questions', { 
-          state: { 
-            roomCode, 
-            roomInfo,
-            pollTitle: roomInfo.title 
-          } 
+      // Clean the room code (remove dash for API call)
+      const cleanRoomCode = roomCode.replace("-", "");
+
+      // Call the backend API to get poll details by room code
+      const response = await axios.get(
+        `http://localhost:4000/api/room-code/polls/${cleanRoomCode}`
+      );
+
+      console.log("Poll data received:", response);
+
+      // If successful, navigate to poll questions page
+      if (
+        !response.data &&
+        response.data[0].room_code !== cleanRoomCode
+      ) {
+        setRoomCodeCheckError(true);
+      }
+      if (
+        response.data &&
+        response.data.length > 0 &&
+        response.data[0].room_code === cleanRoomCode
+      ) {
+        setJoinStatus("success");
+        navigate("/student/poll-questions", {
+          state: {
+            roomCode: cleanRoomCode,
+            pollData: response.data[0],
+          },
         });
-      }, 1500);
-      
+      }
     } catch (err) {
-      setJoinStatus('error');
-      setError('Failed to join the poll. Please try again.');
+      console.error("Error joining poll:", err);
+      setJoinStatus("error");
+
+      // Handle different types of errors
+      if (axios.isAxiosError(err)) {
+        if (err.response) {
+          switch (err.response.status) {
+            case 404:
+              setError("Poll room not found. Please check the room code.");
+              break;
+            case 400:
+              setError("Invalid room code format.");
+              break;
+            case 500:
+              setError("Server error. Please try again later.");
+              break;
+            default:
+              setError(
+                err.response.data?.message ||
+                  "Failed to join the poll. Please try again."
+              );
+          }
+        } else if (err.request) {
+          setError(
+            "Network error. Please check your connection and try again."
+          );
+        } else {
+          setError("An unexpected error occurred. Please try again.");
+        }
+      } else {
+        setError("Failed to join the poll. Please try again.");
+      }
     } finally {
-      setIsJoining(false);
+      setLoading(false);
     }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && roomInfo && !isJoining) {
+    if (e.key === "Enter" && roomCode.trim() && !loading) {
       handleJoinPoll();
     }
   };
@@ -132,35 +193,63 @@ const JoinPollPage: React.FC = () => {
           <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full mb-4">
             <Hash className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-3xl font-bold text-white mb-2">Join Poll Session</h1>
-          <p className="text-gray-300">Enter your room code to join the live poll</p>
+          <h1 className="text-3xl font-bold text-white mb-2">
+            Join Poll Session
+          </h1>
+          <p className="text-gray-300">
+            Enter your room code to join the live poll
+          </p>
         </div>
 
- {/* Instructions */}
-  <div className="mb-8">
-    <div className="bg-gradient-to-r from-purple-700/40 to-blue-700/40 border border-purple-500/30 rounded-xl p-5 flex flex-col sm:flex-row items-center gap-4 shadow-lg">
-      <div className="flex-shrink-0 flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600">
-        <CheckCircle className="w-7 h-7 text-white" />
-      </div>
-      <div>
-        <h2 className="text-lg font-semibold text-white mb-1">How to Join a Poll</h2>
-        <ul className="list-disc list-inside text-gray-300 text-sm space-y-1">
-          <li>Ask your instructor for the <span className="text-primary-400 font-semibold">Room Code</span>.</li>
-          <li>Type the code in the box below (e.g., <span className="font-mono text-blue-300">ABC-123</span>).</li>
-          <li>Wait for the poll details to appear, then click <span className="text-primary-400 font-semibold">Join Poll</span>.</li>
-          <li>If the code is invalid or expired, you’ll see a helpful message.</li>
-        </ul>
-      </div>
-    </div>
-  </div>
-  
+        {/* Instructions */}
+        <div className="mb-8">
+          <div className="bg-gradient-to-r from-purple-700/40 to-blue-700/40 border border-purple-500/30 rounded-xl p-5 flex flex-col sm:flex-row items-center gap-4 shadow-lg">
+            <div className="flex-shrink-0 flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600">
+              <CheckCircle className="w-7 h-7 text-white" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-white mb-1">
+                How to Join a Poll
+              </h2>
+              <ul className="list-disc list-inside text-gray-300 text-sm space-y-1">
+                <li>
+                  Ask your instructor for the{" "}
+                  <span className="text-primary-400 font-semibold">
+                    Room Code
+                  </span>
+                  .
+                </li>
+                <li>
+                  Type the code in the box below (e.g.,{" "}
+                  <span className="font-mono text-blue-300">ABC-123</span>).
+                </li>
+                <li>
+                  Wait for the poll details to appear, then click{" "}
+                  <span className="text-primary-400 font-semibold">
+                    Join Poll
+                  </span>
+                  .
+                </li>
+                <li>
+                  If the code is invalid or expired, you’ll see a helpful
+                  message.
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
         {/* Main Card */}
         <div className="bg-white/5 border border-white/10 rounded-2xl p-6 sm:p-8">
           {joinStatus === "success" ? (
             <div className="text-center py-8">
               <CheckCircle className="w-10 h-10 text-green-500 mb-4 mx-auto" />
-              <h3 className="text-xl font-semibold text-white mb-2">Successfully Joined!</h3>
-              <p className="text-gray-400 mb-4">Redirecting to poll questions...</p>
+              <h3 className="text-xl font-semibold text-white mb-2">
+                Successfully Joined!
+              </h3>
+              <p className="text-gray-400 mb-4">
+                Redirecting to poll questions...
+              </p>
               <Loader2 className="w-5 h-5 animate-spin text-blue-400 mx-auto" />
             </div>
           ) : (
@@ -188,34 +277,42 @@ const JoinPollPage: React.FC = () => {
               </div>
 
               {/* Error Message */}
-              {error && (
+              {!roomCodeCheckError && (
                 <div className="mb-6 flex items-center space-x-2 text-red-400 text-sm">
                   <AlertCircle className="w-4 h-4" />
-                  <span>{error}</span>
+                  <span>{roomCodeCheckError && "Invalid room code. Please try again."}</span>
                 </div>
               )}
 
               {/* Room Info Preview */}
               {roomInfo && (
                 <div className="mb-6 p-4 bg-white/5 border border-white/10 rounded-xl text-white space-y-2">
-                  <p><strong>Poll:</strong> {roomInfo.title}</p>
-                  <p><strong>Host:</strong> {roomInfo.host}</p>
-                  <p><strong>Participants:</strong> {roomInfo.participants}</p>
-                  <p><strong>Time Remaining:</strong> {roomInfo.timeRemaining}</p>
+                  <p>
+                    <strong>Poll:</strong> {roomInfo.title}
+                  </p>
+                  <p>
+                    <strong>Host:</strong> {roomInfo.host}
+                  </p>
+                  <p>
+                    <strong>Participants:</strong> {roomInfo.participants}
+                  </p>
+                  <p>
+                    <strong>Time Remaining:</strong> {roomInfo.timeRemaining}
+                  </p>
                 </div>
               )}
 
               {/* Join Button */}
               <button
                 onClick={handleJoinPoll}
-                disabled={!roomInfo || isJoining}
+                disabled={!roomCode.trim() || loading}
                 className={`w-full py-3 px-6 rounded-xl font-semibold text-lg transition-all duration-200 text-white ${
-                  roomInfo && !isJoining
+                  roomCode.trim() && !loading
                     ? "bg-gradient-to-r from-blue-600 to-purple-600 hover:brightness-110"
                     : "bg-white/10 text-gray-400 cursor-not-allowed"
                 }`}
               >
-                {isJoining ? (
+                {loading ? (
                   <div className="flex items-center justify-center">
                     <Loader2 className="w-5 h-5 animate-spin mr-2" /> Joining...
                   </div>
@@ -223,6 +320,8 @@ const JoinPollPage: React.FC = () => {
                   "Join Poll"
                 )}
               </button>
+
+              {/* <button onClick={handleJoinPoll} >Join Poll</button> */}
             </>
           )}
         </div>
@@ -230,12 +329,13 @@ const JoinPollPage: React.FC = () => {
         {/* Footer Tips */}
         {joinStatus !== "success" && (
           <div className="mt-6 text-sm text-gray-400 text-center">
-            Room codes are 6 characters long (e.g., ABC-123). Ask your instructor for the code.
+            Room codes are 6 characters long (e.g., ABC-123). Ask your
+            instructor for the code.
           </div>
         )}
       </motion.div>
     </>
   );
-}
+};
 
-export default JoinPollPage
+export default JoinPollPage;
