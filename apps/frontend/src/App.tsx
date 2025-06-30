@@ -8,8 +8,7 @@ import LoadingScreen from './components/LoadingScreen';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
-import HostDashboard from './pages/HostDashboard';
-import OrbitalHostDashboard from './pages/OrbitalHostDashboard';
+import HostDashboard from './pages/HostDashboard'
 import StudentDashboard from './pages/StudentDashboard';
 import AudioCapture from './pages/AudioCapture';
 import AIQuestionFeed from './pages/AIQuestionFeed';
@@ -21,6 +20,8 @@ import HomePage from './pages/HomePage';
 import CreateManualPoll from './pages/CreateManualPoll';
 import CreatePollPage from './pages/CreatePollPage';
 import ContactUs from './pages/ContactUs';
+import ChangePassword from './components/student/ChangePassword';
+import GuestPage from './pages/guest/GuestPage';
 
 
 // Student dashboard section imports
@@ -33,6 +34,7 @@ import NotificationPage from './components/student/NotificationPage';
 import SettingsStudent from './components/student/Settings';
 import StudentLeaderboard from './components/student/StudentLeaderboard';
 import DashboardHomePage from './components/student/DashboardHomePage';
+import ActiveSessions from './components/student/ActiveSessions';
 
 function App() {
   return (
@@ -48,12 +50,10 @@ function App() {
                 <Route path="/register" element={<RegisterPage />} />
                 <Route path="/forgot-password" element={<ForgotPasswordPage />} />
                 <Route path="/contactUs" element={<ContactUs />} />
+                
                 {/* Host Dashboard Routes */}
                 <Route path="/host" element={
                     <HostDashboard />
-                } />
-                <Route path="/host/orbital" element={
-                    <OrbitalHostDashboard />
                 } />
                 <Route path="/host/audio" element={
                     <AudioCapture />
@@ -79,6 +79,9 @@ function App() {
                 <Route path="/host/settings" element={
                     <Settings />
                 } />
+                <Route path="/guest" element={
+                  <GuestPage />
+                  } />
 
       {/* Student Dashboard Routes */}
       <Route path="/student/*" element={<StudentDashboard />}>
@@ -91,6 +94,8 @@ function App() {
         <Route path="notifications" element={<NotificationPage />} />
         <Route path="settings" element={<SettingsStudent />} />
         <Route path="leaderboard" element={<StudentLeaderboard />} />
+        <Route path="change-password" element={<ChangePassword />} />
+        <Route path="active-sessions" element={<ActiveSessions />} />
       </Route>
     </Routes>
             </div>
