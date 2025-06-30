@@ -1,11 +1,11 @@
 "use client"
 
 import type React from "react"
-import { useState } from "react"
+import { useState,useEffect,useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   User,
   Bell,
-  Shield,
   Palette,
   Smartphone,
   Lock,
@@ -15,13 +15,30 @@ import {
   Moon,
   Sun,
   Monitor,
-  BookOpen,
-  Target,
-} from "lucide-react"
-import GlassCard from "../GlassCard"
+  AlertTriangle
+} from "lucide-react";
+import GlassCard from "../GlassCard";
 
 
 const Settings: React.FC = () => {
+
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Handle avatar upload
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setProfileData((prev) => ({
+          ...prev,
+          avatar: event.target?.result as string,
+        }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   // Profile Settings
   const [profileData, setProfileData] = useState({
     firstName: "John",
@@ -42,13 +59,6 @@ const Settings: React.FC = () => {
     soundEnabled: true,
   })
 
-  // Privacy Settings
-  const [privacySettings, setPrivacySettings] = useState({
-    profileVisibility: "public",
-    showInLeaderboard: true,
-    shareProgress: true,
-    allowDirectMessages: true,
-  })
 
   // Appearance Settings
   const [appearanceSettings, setAppearanceSettings] = useState({
@@ -59,34 +69,93 @@ const Settings: React.FC = () => {
     highContrast: false,
   })
 
-  // Learning Preferences
-  const [learningSettings, setLearningSettings] = useState({
-    difficultyLevel: "intermediate",
-    studyReminders: true,
-    goalTracking: true,
-    progressSharing: true,
-    preferredSubjects: ["Computer Science", "Mathematics"],
-  })
 
   const [activeTab, setActiveTab] = useState("profile")
   const [isSaving, setIsSaving] = useState(false)
+  const [showSavedMessage, setShowSavedMessage] = useState(false)
 
   const tabs = [
     { id: "profile", label: "Profile", icon: User },
     { id: "notifications", label: "Notifications", icon: Bell },
-    { id: "privacy", label: "Privacy", icon: Shield },
     { id: "appearance", label: "Appearance", icon: Palette },
-    { id: "learning", label: "Learning", icon: BookOpen },
     { id: "security", label: "Security", icon: Lock },
+
   ]
 
+  useEffect(() => {
+  document.documentElement.style.fontSize =
+    appearanceSettings.fontSize === "small"
+      ? "14px"
+      : appearanceSettings.fontSize === "large"
+      ? "18px"
+      : "16px";
+}, [appearanceSettings.fontSize]);
+
+// Accessibility: Apply reduced motion and high contrast
+  useEffect(() => {
+    // Reduced Motion
+    if (appearanceSettings.reducedMotion) {
+      document.documentElement.style.setProperty("scroll-behavior", "auto");
+      document.body.classList.add("reduced-motion");
+    } else {
+      document.documentElement.style.setProperty("scroll-behavior", "");
+      document.body.classList.remove("reduced-motion");
+    }
+
+    // High Contrast
+    if (appearanceSettings.highContrast) {
+      document.body.classList.add("high-contrast");
+    } else {
+      document.body.classList.remove("high-contrast");
+    }
+  }, [appearanceSettings.reducedMotion, appearanceSettings.highContrast]);
+
+  const navigate = useNavigate();
+
+
+  const handleChangePassword = () => {
+    // Navigate to a change password page or open a modal
+    navigate("/student/change-password");
+    // Or, if you want a modal, you can set a state like setShowChangePasswordModal(true)
+  };
+
   const handleSave = async () => {
-    setIsSaving(true)
+  setIsSaving(true);
+  // Save all settings to localStorage (or API)
+  localStorage.setItem("studentSettings", JSON.stringify({
+    profileData,
+    notificationSettings,
+    privacySettings,
+    appearanceSettings,
+    learningSettings,
+  }));
+  await new Promise((resolve) => setTimeout(resolve, 1500));
+    setIsSaving(false);
+    setShowSavedMessage(true);
+    setTimeout(() => setShowSavedMessage(false), 2000); // Hide after 2 seconds
+  };
+
+  const handleActiveSessions = () => {
+    // Navigate to the active sessions page or open a modal
+    navigate("/student/active-sessions");
+    // Or, if you want a modal, you can set a state like setShowActiveSessionsModal(true)
+  };
+
+  // Modal state for delete account
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
+
+  // Handler for Delete Account
+  const handleDeleteAccount = async () => {
+    setIsDeleting(true);
+    setDeleteError("");
     // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500))
-    setIsSaving(false)
-    // Show success message (you can implement toast notifications)
-  }
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    setIsDeleting(false);
+    // For demo: redirect to goodbye page or login
+    navigate("/");
+  };
 
   const renderProfileSettings = () => (
     <div className="space-y-6">
@@ -103,11 +172,23 @@ const Settings: React.FC = () => {
               <img
                 src={profileData.avatar || "/placeholder.svg"}
                 alt="Profile"
-                className="w-20 h-20 rounded-full border-2 border-purple-500/30"
+                className="w-20 h-20 rounded-full border-2 border-purple-500/30 object-cover"
               />
-              <button className="absolute -bottom-1 -right-1 p-2 bg-purple-600 rounded-full hover:bg-purple-700 transition-colors">
+              <button
+                type="button"
+                className="absolute -bottom-1 -right-1 p-2 bg-purple-600 rounded-full hover:bg-purple-700 transition-colors"
+                onClick={() => fileInputRef.current?.click()}
+                aria-label="Upload profile picture"
+              >
                 <Camera className="w-4 h-4 text-white" />
               </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleAvatarChange}
+              />
             </div>
             <div>
               <h4 className="text-white font-medium">Profile Picture</h4>
@@ -208,71 +289,6 @@ const Settings: React.FC = () => {
     </div>
   )
 
-  const renderPrivacySettings = () => (
-    <div className="space-y-6">
-      <GlassCard className="p-6">
-        <div className="flex items-center gap-2 mb-6">
-          <Shield className="w-5 h-5 text-purple-400" />
-          <h3 className="text-lg font-semibold text-white">Privacy Settings</h3>
-        </div>
-
-        <div className="space-y-6">
-          {/* Profile Visibility */}
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Profile Visibility</label>
-            <select
-              value={privacySettings.profileVisibility}
-              onChange={(e) => setPrivacySettings({ ...privacySettings, profileVisibility: e.target.value })}
-              className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50"
-            >
-              <option value="public" className="bg-gray-800">
-                Public
-              </option>
-              <option value="friends" className="bg-gray-800">
-                Friends Only
-              </option>
-              <option value="private" className="bg-gray-800">
-                Private
-              </option>
-            </select>
-          </div>
-
-          {/* Privacy Toggles */}
-          {[
-            {
-              key: "showInLeaderboard",
-              label: "Show in Leaderboard",
-              desc: "Display your name on public leaderboards",
-            },
-            { key: "shareProgress", label: "Share Progress", desc: "Allow others to see your learning progress" },
-            { key: "allowDirectMessages", label: "Allow Direct Messages", desc: "Let other students message you" },
-          ].map((setting) => (
-            <div key={setting.key} className="flex items-center justify-between p-4 bg-white/5 rounded-lg">
-              <div>
-                <h4 className="text-white font-medium">{setting.label}</h4>
-                <p className="text-gray-400 text-sm">{setting.desc}</p>
-              </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={privacySettings[setting.key as keyof typeof privacySettings]}
-                  onChange={(e) =>
-                    setPrivacySettings({
-                      ...privacySettings,
-                      [setting.key]: e.target.checked,
-                    })
-                  }
-                  className="sr-only peer"
-                />
-                <div className="relative w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
-              </label>
-            </div>
-          ))}
-        </div>
-      </GlassCard>
-    </div>
-  )
-
   const renderAppearanceSettings = () => (
     <div className="space-y-6">
       <GlassCard className="p-6">
@@ -308,29 +324,6 @@ const Settings: React.FC = () => {
                 )
               })}
             </div>
-          </div>
-
-          {/* Language */}
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Language</label>
-            <select
-              value={appearanceSettings.language}
-              onChange={(e) => setAppearanceSettings({ ...appearanceSettings, language: e.target.value })}
-              className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50"
-            >
-              <option value="en" className="bg-gray-800">
-                English
-              </option>
-              <option value="es" className="bg-gray-800">
-                Spanish
-              </option>
-              <option value="fr" className="bg-gray-800">
-                French
-              </option>
-              <option value="de" className="bg-gray-800">
-                German
-              </option>
-            </select>
           </div>
 
           {/* Font Size */}
@@ -384,73 +377,7 @@ const Settings: React.FC = () => {
     </div>
   )
 
-  const renderLearningSettings = () => (
-    <div className="space-y-6">
-      <GlassCard className="p-6">
-        <div className="flex items-center gap-2 mb-6">
-          <BookOpen className="w-5 h-5 text-purple-400" />
-          <h3 className="text-lg font-semibold text-white">Learning Preferences</h3>
-        </div>
-
-        <div className="space-y-6">
-          {/* Difficulty Level */}
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-3">Preferred Difficulty Level</label>
-            <div className="grid grid-cols-3 gap-3">
-              {[
-                { value: "beginner", label: "Beginner", color: "green" },
-                { value: "intermediate", label: "Intermediate", color: "yellow" },
-                { value: "advanced", label: "Advanced", color: "red" },
-              ].map((level) => (
-                <button
-                  key={level.value}
-                  onClick={() => setLearningSettings({ ...learningSettings, difficultyLevel: level.value })}
-                  className={`p-3 rounded-lg border-2 transition-all duration-200 ${
-                    learningSettings.difficultyLevel === level.value
-                      ? "border-purple-500 bg-purple-500/20"
-                      : "border-white/10 bg-white/5 hover:bg-white/10"
-                  }`}
-                >
-                  <Target className="w-5 h-5 text-white mx-auto mb-1" />
-                  <span className="text-white text-sm">{level.label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Learning Toggles */}
-          {[
-            { key: "studyReminders", label: "Study Reminders", desc: "Get reminded to participate in polls" },
-            { key: "goalTracking", label: "Goal Tracking", desc: "Track your learning goals and progress" },
-            { key: "progressSharing", label: "Progress Sharing", desc: "Share achievements with classmates" },
-          ].map((setting) => (
-            <div key={setting.key} className="flex items-center justify-between p-4 bg-white/5 rounded-lg">
-              <div>
-                <h4 className="text-white font-medium">{setting.label}</h4>
-                <p className="text-gray-400 text-sm">{setting.desc}</p>
-              </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={learningSettings[setting.key as keyof typeof learningSettings]}
-                  onChange={(e) =>
-                    setLearningSettings({
-                      ...learningSettings,
-                      [setting.key]: e.target.checked,
-                    })
-                  }
-                  className="sr-only peer"
-                />
-                <div className="relative w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
-              </label>
-            </div>
-          ))}
-        </div>
-      </GlassCard>
-    </div>
-  )
-
-  const renderSecuritySettings = () => (
+   const renderSecuritySettings = () => (
     <div className="space-y-6">
       <GlassCard className="p-6">
         <div className="flex items-center gap-2 mb-6">
@@ -459,7 +386,10 @@ const Settings: React.FC = () => {
         </div>
 
         <div className="space-y-4">
-          <button className="w-full p-4 bg-white/5 rounded-lg text-left hover:bg-white/10 transition-colors">
+          <button
+            className="w-full p-4 bg-white/5 rounded-lg text-left hover:bg-white/10 transition-colors"
+            onClick={handleChangePassword}
+          >
             <div className="flex items-center justify-between">
               <div>
                 <h4 className="text-white font-medium">Change Password</h4>
@@ -469,17 +399,11 @@ const Settings: React.FC = () => {
             </div>
           </button>
 
-          <button className="w-full p-4 bg-white/5 rounded-lg text-left hover:bg-white/10 transition-colors">
-            <div className="flex items-center justify-between">
-              <div>
-                <h4 className="text-white font-medium">Two-Factor Authentication</h4>
-                <p className="text-gray-400 text-sm">Add an extra layer of security</p>
-              </div>
-              <Shield className="w-5 h-5 text-gray-400" />
-            </div>
-          </button>
-
-          <button className="w-full p-4 bg-white/5 rounded-lg text-left hover:bg-white/10 transition-colors">
+          {/* Active Sessions */}
+          <button
+            className="w-full p-4 bg-white/5 rounded-lg text-left hover:bg-white/10 transition-colors"
+            onClick={handleActiveSessions}
+          >
             <div className="flex items-center justify-between">
               <div>
                 <h4 className="text-white font-medium">Active Sessions</h4>
@@ -489,7 +413,11 @@ const Settings: React.FC = () => {
             </div>
           </button>
 
-          <button className="w-full p-4 bg-red-500/10 border border-red-500/20 rounded-lg text-left hover:bg-red-500/20 transition-colors">
+          {/* Delete Account */}
+          <button
+            className="w-full p-4 bg-red-500/10 border border-red-500/20 rounded-lg text-left hover:bg-red-500/20 transition-colors"
+            onClick={() => setShowDeleteModal(true)}
+          >
             <div className="flex items-center justify-between">
               <div>
                 <h4 className="text-red-400 font-medium">Delete Account</h4>
@@ -500,8 +428,54 @@ const Settings: React.FC = () => {
           </button>
         </div>
       </GlassCard>
+
+      {/* Delete Account Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="bg-gradient-to-br from-slate-800 to-slate-900 border border-red-500/30 rounded-2xl p-8 max-w-md w-full shadow-2xl space-y-6">
+            <div className="flex items-center gap-3">
+              <AlertTriangle className="w-7 h-7 text-red-400" />
+              <h3 className="text-xl font-bold text-white">Delete Account</h3>
+            </div>
+            <p className="text-gray-300">
+              Are you sure you want to <span className="text-red-400 font-semibold">permanently delete</span> your account? This action cannot be undone.
+            </p>
+            {deleteError && (
+              <div className="text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-2 text-sm text-center">
+                {deleteError}
+              </div>
+            )}
+            <div className="flex flex-col sm:flex-row gap-3">
+              <button
+                onClick={() => setShowDeleteModal(false)}
+                className="flex-1 px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white font-medium transition"
+                disabled={isDeleting}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteAccount}
+                className="flex-1 px-4 py-2 rounded-lg bg-gradient-to-r from-red-600 to-pink-600 text-white font-medium hover:from-red-700 hover:to-pink-700 transition flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={isDeleting}
+              >
+                {isDeleting ? (
+                  <>
+                    <RefreshCw className="w-5 h-5 animate-spin" />
+                    Deleting...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="w-5 h-5" />
+                    Delete Account
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
-  )
+  );
 
   const renderTabContent = () => {
     switch (activeTab) {
@@ -509,12 +483,8 @@ const Settings: React.FC = () => {
         return renderProfileSettings()
       case "notifications":
         return renderNotificationSettings()
-      case "privacy":
-        return renderPrivacySettings()
       case "appearance":
         return renderAppearanceSettings()
-      case "learning":
-        return renderLearningSettings()
       case "security":
         return renderSecuritySettings()
       default:
@@ -524,6 +494,17 @@ const Settings: React.FC = () => {
 
   return (
     <div className="p-8 space-y-8">
+
+      {/* Success Message Popup */}
+      {showSavedMessage && (
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50">
+          <div className="bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-2 animate-fade-in-down">
+            <Save className="w-5 h-5" />
+            Changes successfully saved!
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="text-center space-y-4">
         <div className="flex items-center justify-center gap-3">

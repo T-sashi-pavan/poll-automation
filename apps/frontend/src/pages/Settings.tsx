@@ -1,12 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { 
-  Settings as SettingsIcon, 
-  Moon, 
-  Sun, 
-  Clock, 
-  Volume2, 
-  Shield, 
+import {
+  Settings as SettingsIcon,
+  Moon,
+  Sun,
+  Clock,
+  Volume2,
+  Shield,
   Palette,
   Mic,
   User,
@@ -19,42 +19,67 @@ import DashboardLayout from '../components/DashboardLayout';
 import GlassCard from '../components/GlassCard';
 import { useTheme } from '../contexts/ThemeContext';
 
+const fontSizeMap: Record<string, string> = {
+  small: '14px',
+  medium: '16px',
+  large: '18px',
+};
+
 const Settings = () => {
   const { isDarkMode, toggleDarkMode, accentColor, setAccentColor } = useTheme();
 
-   // Profile Settings
-    const [profileData, setProfileData] = useState({
-      firstName: "John",
-      lastName: "Doe",
-      email: "john.doe@student.edu",
-      bio: "Computer Science student passionate about learning",
-      avatar: "https://imgs.search.brave.com/x5_5ivfXsbQ-qwitDVJyk-aJx6KxpIIi0BgyHXDu8Jg/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9pbWcu/ZnJlZXBpay5jb20v/ZnJlZS1wc2QvM2Qt/aWxsdXN0cmF0aW9u/LWh1bWFuLWF2YXRh/ci1wcm9maWxlXzIz/LTIxNTA2NzExNDIu/anBnP3NlbXQ9YWlz/X2h5YnJpZCZ3PTc0/MA?height=100&width=100",
-    })
-  
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Handle avatar upload
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setProfileData((prev) => ({
+          ...prev,
+          avatar: event.target?.result as string,
+        }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // Show "Changes applied!" message after saving
+  const [showSavedMessage, setShowSavedMessage] = useState(false);
+  const handleSaveSettings = () => {
+    localStorage.setItem('pollAppSettings', JSON.stringify(settings));
+    setShowSavedMessage(true);
+    setTimeout(() => setShowSavedMessage(false), 2000); // Hide after 2 seconds
+  };
+
+  // Profile Settings
+  const [profileData, setProfileData] = useState({
+    firstName: "John",
+    lastName: "Doe",
+    email: "john.doe@student.edu",
+    bio: "Computer Science student passionate about learning",
+    avatar: "https://imgs.search.brave.com/x5_5ivfXsbQ-qwitDVJyk-aJx6KxpIIi0BgyHXDu8Jg/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9pbWcu/ZnJlZXBpay5jb20v/ZnJlZS1wc2QvM2Qt/aWxsdXN0cmF0aW9u/LWh1bWFuLWF2YXRh/ci1wcm9maWxlXzIz/LTIxNTA2NzExNDIu/anBnP3NlbXQ9YWlz/X2h5YnJpZCZ3PTc0/MA?height=100&width=100",
+  })
+
   // Settings state
   const [settings, setSettings] = useState({
     // General Settings
     defaultTimer: 30,
     autoLaunch: false,
     enableNotifications: true,
-    
+
     // Audio Settings
     selectedMicrophone: 'default',
     microphoneVolume: 75,
     enableAudioFeedback: true,
-    
-    // Security Settings
-    enableScreenshotDetection: true,
-    enableCopyProtection: true,
-    enableBlurOnFocusLoss: true,
-    sessionTimeout: 60,
-    
+
     // Theme Settings
     primaryColor: '#8B5CF6',
     secondaryColor: '#3B82F6',
     accentColor: '#14B8A6',
     fontSize: 'medium',
-    
+
     // AI Settings
     aiConfidenceThreshold: 80,
     autoApproveHighConfidence: false,
@@ -75,14 +100,7 @@ const Settings = () => {
     { name: 'Orange', primary: '#F59E0B', secondary: '#D97706', accent: '#EF4444' },
   ];
 
-  const handleSettingChange = (key: string, value: any) => {
-    setSettings(prev => ({ ...prev, [key]: value }));
-  };
 
-  const handleSaveSettings = () => {
-    console.log('Saving settings:', settings);
-    // Implementation for saving settings
-  };
 
   const handleResetSettings = () => {
     setSettings({
@@ -92,9 +110,6 @@ const Settings = () => {
       selectedMicrophone: 'default',
       microphoneVolume: 75,
       enableAudioFeedback: true,
-      enableScreenshotDetection: true,
-      enableCopyProtection: true,
-      enableBlurOnFocusLoss: true,
       sessionTimeout: 60,
       primaryColor: '#8B5CF6',
       secondaryColor: '#3B82F6',
@@ -109,20 +124,56 @@ const Settings = () => {
   const ToggleSwitch = ({ enabled, onChange }: { enabled: boolean; onChange: (value: boolean) => void }) => (
     <button
       onClick={() => onChange(!enabled)}
-      className={`relative inline-flex items-center h-6 rounded-full w-11 transition-colors duration-200 ${
-        enabled ? 'bg-primary-500' : 'bg-gray-600'
-      }`}
+      className={`relative inline-flex items-center h-6 rounded-full w-11 transition-colors duration-200 ${enabled ? 'bg-primary-500' : 'bg-gray-600'
+        }`}
     >
       <span
-        className={`inline-block w-4 h-4 transform bg-white rounded-full transition-transform duration-200 ${
-          enabled ? 'translate-x-6' : 'translate-x-1'
-        }`}
+        className={`inline-block w-4 h-4 transform bg-white rounded-full transition-transform duration-200 ${enabled ? 'translate-x-6' : 'translate-x-1'
+          }`}
       />
     </button>
   );
 
+  useEffect(() => {
+    const fontSize = fontSizeMap[settings.fontSize] || fontSizeMap.medium;
+    document.documentElement.style.setProperty('--app-font-size', fontSize);
+    // Optionally, set on body for legacy support:
+    document.body.style.fontSize = fontSize;
+  }, [settings.fontSize]);
+  useEffect(() => {
+    document.documentElement.style.setProperty('--primary-color', settings.primaryColor);
+    document.documentElement.style.setProperty('--secondary-color', settings.secondaryColor);
+    document.documentElement.style.setProperty('--accent-color', settings.accentColor);
+  }, [settings.primaryColor, settings.secondaryColor, settings.accentColor]);
+
+  useEffect(() => {
+    const saved = localStorage.getItem('pollAppSettings');
+    if (saved) {
+      setSettings(JSON.parse(saved));
+    }
+  }, []);
+
+  function handleSettingChange(
+    key: keyof typeof settings,
+    value: typeof settings[keyof typeof settings]
+  ): void {
+    setSettings(prev => ({
+      ...prev,
+      [key]: value,
+    }));
+  }
   return (
+
     <DashboardLayout>
+      {/* Success Message Popup */}
+      {showSavedMessage && (
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50">
+          <div className="bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-2 animate-fade-in-down">
+            <Save className="w-5 h-5" />
+            Changes applied!
+          </div>
+        </div>
+      )}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -159,77 +210,89 @@ const Settings = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Profile Information */}
-<GlassCard className="p-6 lg:col-span-2">
-  <div className="flex items-center gap-2 mb-6">
-    <User className="w-5 h-5 text-purple-400" />
-    <h3 className="text-lg font-semibold text-white">Personal Information</h3>
-  </div>
+          <GlassCard className="p-6 lg:col-span-2">
+            <div className="flex items-center gap-2 mb-6">
+              <User className="w-5 h-5 text-purple-400" />
+              <h3 className="text-lg font-semibold text-white">Personal Information</h3>
+            </div>
 
-  <div className="space-y-6">
-    {/* Avatar Section */}
-    <div className="flex items-center gap-6">
-      <div className="relative">
-        <img
-          src={profileData.avatar || "/placeholder.svg"}
-          alt="Profile"
-          className="w-20 h-20 rounded-full border-2 border-purple-500/30"
-        />
-        <button className="absolute -bottom-1 -right-1 p-2 bg-purple-600 rounded-full hover:bg-purple-700 transition-colors">
-          <Camera className="w-4 h-4 text-white" />
-        </button>
-      </div>
-      <div>
-        <h4 className="text-white font-medium">Profile Picture</h4>
-        <p className="text-gray-400 text-sm">Upload a new profile picture</p>
-      </div>
-    </div>
+            <div className="space-y-6">
+              {/* Avatar Section */}
+              <div className="flex items-center gap-6">
+                <div className="relative">
+                  <img
+                    src={profileData.avatar || "/placeholder.svg"}
+                    alt="Profile"
+                    className="w-20 h-20 rounded-full border-2 border-purple-500/30 object-cover"
+                  />
+                  <button
+                    type="button"
+                    className="absolute -bottom-1 -right-1 p-2 bg-purple-600 rounded-full hover:bg-purple-700 transition-colors"
+                    onClick={() => fileInputRef.current?.click()}
+                    aria-label="Upload profile picture"
+                  >
+                    <Camera className="w-4 h-4 text-white" />
+                  </button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleAvatarChange}
+                  />
+                </div>
+                <div>
+                  <h4 className="text-white font-medium">Profile Picture</h4>
+                  <p className="text-gray-400 text-sm">Upload a new profile picture</p>
+                </div>
+              </div>
 
-    {/* Name Fields */}
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <div>
-        <label className="block text-sm font-medium text-gray-300 mb-2">First Name</label>
-        <input
-          type="text"
-          value={profileData.firstName}
-          onChange={(e) => setProfileData({ ...profileData, firstName: e.target.value })}
-          className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50"
-        />
-      </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-300 mb-2">Last Name</label>
-        <input
-          type="text"
-          value={profileData.lastName}
-          onChange={(e) => setProfileData({ ...profileData, lastName: e.target.value })}
-          className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50"
-        />
-      </div>
-    </div>
+              {/* Name Fields */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">First Name</label>
+                  <input
+                    type="text"
+                    value={profileData.firstName}
+                    onChange={(e) => setProfileData({ ...profileData, firstName: e.target.value })}
+                    className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Last Name</label>
+                  <input
+                    type="text"
+                    value={profileData.lastName}
+                    onChange={(e) => setProfileData({ ...profileData, lastName: e.target.value })}
+                    className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50"
+                  />
+                </div>
+              </div>
 
-    {/* Email */}
-    <div>
-      <label className="block text-sm font-medium text-gray-300 mb-2">Email Address</label>
-      <input
-        type="email"
-        value={profileData.email}
-        onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
-        className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50"
-      />
-    </div>
+              {/* Email */}
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Email Address</label>
+                <input
+                  type="email"
+                  value={profileData.email}
+                  onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
+                  className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50"
+                />
+              </div>
 
-    {/* Bio */}
-    <div>
-      <label className="block text-sm font-medium text-gray-300 mb-2">Bio</label>
-      <textarea
-        value={profileData.bio}
-        onChange={(e) => setProfileData({ ...profileData, bio: e.target.value })}
-        rows={3}
-        className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 resize-none"
-        placeholder="Tell us about yourself..."
-      />
-    </div>
-  </div>
-</GlassCard>
+              {/* Bio */}
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Bio</label>
+                <textarea
+                  value={profileData.bio}
+                  onChange={(e) => setProfileData({ ...profileData, bio: e.target.value })}
+                  rows={3}
+                  className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 resize-none"
+                  placeholder="Tell us about yourself..."
+                />
+              </div>
+            </div>
+          </GlassCard>
 
           {/* General Settings */}
           <GlassCard className="p-6">
@@ -334,61 +397,53 @@ const Settings = () => {
             </div>
           </GlassCard>
 
-          {/* Security Settings */}
-          <GlassCard className="p-6">
-            <h3 className="text-xl font-bold text-white mb-6 flex items-center">
+          <GlassCard className="p-6 relative overflow-hidden">
+            {/* Animated lock background */}
+            <div className="absolute right-2 bottom-2 opacity-10 pointer-events-none select-none">
+              <Shield className="w-32 h-32 text-purple-400 animate-pulse" />
+            </div>
+            <h3 className="text-xl font-bold text-white mb-2 flex items-center relative z-10">
               <Shield className="w-5 h-5 mr-2" />
               Security Settings
             </h3>
-            <div className="space-y-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <label className="text-sm font-medium text-gray-300">Screenshot Detection</label>
-                  <p className="text-xs text-gray-400">Detect screenshot attempts</p>
-                </div>
-                <ToggleSwitch
-                  enabled={settings.enableScreenshotDetection}
-                  onChange={(value) => handleSettingChange('enableScreenshotDetection', value)}
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div>
-                  <label className="text-sm font-medium text-gray-300">Copy Protection</label>
-                  <p className="text-xs text-gray-400">Prevent text copying</p>
-                </div>
-                <ToggleSwitch
-                  enabled={settings.enableCopyProtection}
-                  onChange={(value) => handleSettingChange('enableCopyProtection', value)}
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div>
-                  <label className="text-sm font-medium text-gray-300">Blur on Focus Loss</label>
-                  <p className="text-xs text-gray-400">Blur screen when window loses focus</p>
-                </div>
-                <ToggleSwitch
-                  enabled={settings.enableBlurOnFocusLoss}
-                  onChange={(value) => handleSettingChange('enableBlurOnFocusLoss', value)}
-                />
-              </div>
-
+            <p className="text-gray-400 mb-6 relative z-10">
+              Set how long your session stays active for extra security.
+              <span className="inline-block ml-2 px-2 py-0.5 bg-purple-500/20 text-purple-300 text-xs rounded-full align-middle">Recommended: 60m</span>
+            </p>
+            <div className="space-y-6 relative z-10">
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
                   Session Timeout (minutes)
                 </label>
                 <div className="flex items-center space-x-4">
                   <Clock className="w-4 h-4 text-gray-400" />
-                  <input
-                    type="range"
-                    min="15"
-                    max="180"
-                    value={settings.sessionTimeout}
-                    onChange={(e) => handleSettingChange('sessionTimeout', parseInt(e.target.value))}
-                    className="flex-1"
-                  />
-                  <span className="text-white font-medium w-12">{settings.sessionTimeout}m</span>
+                  <div className="flex-1 flex flex-col">
+                    <input
+                      type="range"
+                      min="15"
+                      max="180"
+                      value={settings.sessionTimeout}
+                      onChange={(e) => handleSettingChange('sessionTimeout', parseInt(e.target.value))}
+                      className="w-full accent-purple-500"
+                      title="Adjust how long your session stays active"
+                    />
+                    <div className="flex justify-between text-xs text-gray-500 mt-1">
+                      <span>15m</span>
+                      <span>180m</span>
+                    </div>
+                  </div>
+                  <span className="text-white font-medium w-12 text-center">
+                    {settings.sessionTimeout}m
+                  </span>
+                </div>
+                {/* Divider */}
+                <div className="mt-6 border-t border-white/10" />
+                {/* Creative tip */}
+                <div className="mt-4 flex items-center gap-2 text-purple-300 text-xs">
+                  <Shield className="w-4 h-4" />
+                  <span>
+                    Tip: Shorter timeouts keep your account safer on shared devices!
+                  </span>
                 </div>
               </div>
             </div>
@@ -430,16 +485,16 @@ const Settings = () => {
                       className="flex items-center space-x-3 p-3 bg-white/5 rounded-lg hover:bg-white/10 transition-colors duration-200"
                     >
                       <div className="flex space-x-1">
-                        <div 
-                          className="w-4 h-4 rounded-full" 
+                        <div
+                          className="w-4 h-4 rounded-full"
                           style={{ backgroundColor: preset.primary }}
                         />
-                        <div 
-                          className="w-4 h-4 rounded-full" 
+                        <div
+                          className="w-4 h-4 rounded-full"
                           style={{ backgroundColor: preset.secondary }}
                         />
-                        <div 
-                          className="w-4 h-4 rounded-full" 
+                        <div
+                          className="w-4 h-4 rounded-full"
                           style={{ backgroundColor: preset.accent }}
                         />
                       </div>
@@ -466,56 +521,6 @@ const Settings = () => {
             </div>
           </GlassCard>
 
-          {/* AI Settings */}
-          <GlassCard className="p-6 lg:col-span-2">
-            <h3 className="text-xl font-bold text-white mb-6 flex items-center">
-              <Bell className="w-5 h-5 mr-2" />
-              AI & Automation Settings
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  AI Confidence Threshold
-                </label>
-                <div className="flex items-center space-x-4">
-                  <input
-                    type="range"
-                    min="50"
-                    max="100"
-                    value={settings.aiConfidenceThreshold}
-                    onChange={(e) => handleSettingChange('aiConfidenceThreshold', parseInt(e.target.value))}
-                    className="flex-1"
-                  />
-                  <span className="text-white font-medium w-12">{settings.aiConfidenceThreshold}%</span>
-                </div>
-                <p className="text-xs text-gray-400 mt-1">Minimum confidence for AI-generated questions</p>
-              </div>
-
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <label className="text-sm font-medium text-gray-300">Auto-approve High Confidence</label>
-                    <p className="text-xs text-gray-400">Automatically approve questions above threshold</p>
-                  </div>
-                  <ToggleSwitch
-                    enabled={settings.autoApproveHighConfidence}
-                    onChange={(value) => handleSettingChange('autoApproveHighConfidence', value)}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div>
-                    <label className="text-sm font-medium text-gray-300">Smart Filtering</label>
-                    <p className="text-xs text-gray-400">Use AI to filter duplicate questions</p>
-                  </div>
-                  <ToggleSwitch
-                    enabled={settings.enableSmartFiltering}
-                    onChange={(value) => handleSettingChange('enableSmartFiltering', value)}
-                  />
-                </div>
-              </div>
-            </div>
-          </GlassCard>
         </div>
       </motion.div>
     </DashboardLayout>
