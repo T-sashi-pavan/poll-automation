@@ -102,3 +102,4 @@ services/pollgen-llm/chroma_langchain_db
 *.tmp
 *.temp
 *~
+whisper-env/
