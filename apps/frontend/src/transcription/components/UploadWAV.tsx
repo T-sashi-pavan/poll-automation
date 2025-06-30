@@ -7,6 +7,7 @@ import type { TranscriptionResult } from "@shared/types";
 const LiveTranscriptionComponent: React.FC = () => {
   const [transcriptions, setTranscriptions] = useState<string[]>([]);
   const [isRecording, setIsRecording] = useState(false);
+  const [status, setStatus] = useState("Idle"); 
   const streamerRef = useRef<MicrophoneStreamer | null>(null);
 
   const meetingId = "live_meeting_123"; // Replace with dynamic ID
