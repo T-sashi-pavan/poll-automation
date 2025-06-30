@@ -2,8 +2,8 @@
 
 import type React from "react"
 import { useState } from "react"
-import { motion } from "framer-motion"
-import { Settings, Save, RotateCcw, Zap } from "lucide-react"
+import { motion, AnimatePresence } from "framer-motion"
+import { Settings, Save, RotateCcw, Zap, Check } from "lucide-react"
 import GlassCard from "./GlassCard"
 import SourceToggle from "./controls/SourceToggle"
 import FrequencySelector from "./controls/FrequencySelector"
@@ -27,54 +27,66 @@ interface AIConfig {
   customRange?: string
 }
 
+const defaultConfig: AIConfig = {
+  source: "gemini",
+  frequency: 5,
+  quantity: 3,
+  types: ["mcq", "truefalse"],
+  contextRange: "last5",
+}
+const defaultDifficulty = "all"
+
 const AIControlPanel: React.FC<AIControlPanelProps> = ({ isOpen, onToggle, showFloatingButton = true }) => {
-  const [config, setConfig] = useState<AIConfig>({
-    source: "gemini",
-    frequency: 5,
-    quantity: 3,
-    types: ["mcq", "truefalse"],
-    contextRange: "last5",
-  })
-
-  const [difficulty, setDifficulty] = useState<string>("all")
-
+  const [config, setConfig] = useState<AIConfig>(defaultConfig)
+  const [difficulty, setDifficulty] = useState<string>(defaultDifficulty)
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
+  const [showSavedPopup, setShowSavedPopup] = useState(false)
 
   const updateConfig = (updates: Partial<AIConfig>) => {
     setConfig((prev) => ({ ...prev, ...updates }))
     setHasUnsavedChanges(true)
   }
 
-  // Add this function to handle difficulty change and set unsaved changes
   const handleDifficultyChange = (value: string) => {
     setDifficulty(value)
     setHasUnsavedChanges(true)
   }
 
   const handleSave = () => {
-    // Here you would typically save to your backend/state management
     console.log("Saving AI configuration:", config)
     setHasUnsavedChanges(false)
 
     // Show success feedback
-    // You could add a toast notification here
+    setShowSavedPopup(true)
+    setTimeout(() => setShowSavedPopup(false), 2000)
   }
 
   const handleReset = () => {
-    setConfig({
-      source: "gemini",
-      frequency: 5,
-      quantity: 3,
-      types: ["mcq", "truefalse"],
-      contextRange: "last5",
-    })
-    setDifficulty("all")
-    setHasUnsavedChanges(false)
+    const isConfigChanged = JSON.stringify(config) !== JSON.stringify(defaultConfig)
+    const isDifficultyChanged = difficulty !== defaultDifficulty
+    setConfig(defaultConfig)
+    setDifficulty(defaultDifficulty)
+    setHasUnsavedChanges(isConfigChanged || isDifficultyChanged)
   }
 
   return (
     <>
-    
+      {/* Saved Successfully Popup */}
+      <AnimatePresence>
+        {showSavedPopup && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3 }}
+            className="fixed top-8 right-8 z-[100] bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg flex items-center space-x-2"
+          >
+            <Check className="w-5 h-5 text-white" />
+            <span>Saved Successfully</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Control Panel Toggle Button - Only show when showFloatingButton is true */}
       {showFloatingButton && (
         <motion.button
@@ -152,6 +164,10 @@ const AIControlPanel: React.FC<AIControlPanelProps> = ({ isOpen, onToggle, showF
                 <span className="capitalize">
                   {config.contextRange === "custom" ? config.customRange : config.contextRange.replace("last", "Last ")}
                 </span>
+              </div>
+              <div className="flex justify-between">
+                <span>Difficulty Level:</span>
+                <span className="capitalize">{difficulty === "all" ? "All Levels" : difficulty}</span>
               </div>
             </div>
           </GlassCard>
