@@ -1,16 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Mic, MicOff, Volume2, Settings, Activity, Pause, Play } from 'lucide-react';
+import { Mic, MicOff, Volume2, Activity, Pause, Play } from 'lucide-react';
 import DashboardLayout from '../components/DashboardLayout';
 import GlassCard from '../components/GlassCard';
+import GuestLinkGenerator from '../components/host/GuestLinkGenerator';
+import { Toaster } from 'react-hot-toast';
 
 const AudioCapture = () => {
   const [isRecording, setIsRecording] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [transcription, setTranscription] = useState('');
-  const [confidence, setConfidence] = useState(0);
   const [selectedMic, setSelectedMic] = useState('default');
   const [waveformData, setWaveformData] = useState<number[]>(Array(50).fill(0));
+  const [downloaded, setDownloaded] = useState(false);
+
 
   // Mock microphone devices
   const micDevices = [
@@ -18,6 +21,22 @@ const AudioCapture = () => {
     { id: 'external', name: 'External USB Microphone' },
     { id: 'headset', name: 'Bluetooth Headset' },
   ];
+
+  const downloadTranscript = () => {
+    if (!transcription) return;
+
+    const element = document.createElement("a");
+    const file = new Blob([transcription], { type: "text/plain" });
+
+    element.href = URL.createObjectURL(file);
+    element.download = `transcript-${Date.now()}.txt`;
+    document.body.appendChild(element); // Required for Firefox
+    element.click();
+    document.body.removeChild(element);
+    setDownloaded(true);
+    setTimeout(() => setDownloaded(false), 2000);
+  };
+
 
   // Simulate waveform animation
   useEffect(() => {
@@ -50,7 +69,6 @@ const AudioCapture = () => {
       const interval = setInterval(() => {
         const randomText = mockTranscriptions[Math.floor(Math.random() * mockTranscriptions.length)];
         setTranscription(prev => prev + " " + randomText);
-        setConfidence(Math.random() * 30 + 70); // 70-100% confidence
       }, 3000);
 
       return () => clearInterval(interval);
@@ -64,7 +82,6 @@ const AudioCapture = () => {
     } else {
       setIsRecording(true);
       setTranscription('');
-      setConfidence(0);
     }
   };
 
@@ -74,7 +91,6 @@ const AudioCapture = () => {
 
   const clearTranscription = () => {
     setTranscription('');
-    setConfidence(0);
   };
 
   return (
@@ -93,10 +109,10 @@ const AudioCapture = () => {
           </div>
           <div className="flex items-center space-x-4">
             <div className={`px-3 py-1 rounded-full text-sm font-medium ${isRecording
-                ? isPaused
-                  ? 'bg-yellow-500/20 text-yellow-400'
-                  : 'bg-green-500/20 text-green-400'
-                : 'bg-gray-500/20 text-gray-400'
+              ? isPaused
+                ? 'bg-yellow-500/20 text-yellow-400'
+                : 'bg-green-500/20 text-green-400'
+              : 'bg-gray-500/20 text-gray-400'
               }`}>
               {isRecording ? (isPaused ? 'Paused' : 'Recording') : 'Stopped'}
             </div>
@@ -115,8 +131,8 @@ const AudioCapture = () => {
                   whileTap={{ scale: 0.95 }}
                   onClick={toggleRecording}
                   className={`w-20 h-20 rounded-full flex items-center justify-center ${isRecording
-                      ? 'bg-red-500 hover:bg-red-600'
-                      : 'bg-primary-500 hover:bg-primary-600'
+                    ? 'bg-red-500 hover:bg-red-600'
+                    : 'bg-primary-500 hover:bg-primary-600'
                     } transition-colors duration-200`}
                 >
                   {isRecording ? (
@@ -148,7 +164,7 @@ const AudioCapture = () => {
                   onClick={clearTranscription}
                   className="px-4 py-2 bg-white/10 rounded-lg text-white hover:bg-white/20 transition-colors duration-200"
                 >
-                  Clear
+                  Clear Transcript
                 </motion.button>
               </div>
             </div>
@@ -194,49 +210,27 @@ const AudioCapture = () => {
             </div>
           </GlassCard>
 
-          {/* Accuracy Indicator */}
+
+          {/* Waveform Visualizer */}
           <GlassCard className="p-6">
-            <h3 className="text-xl font-bold text-white mb-4">Transcription Accuracy</h3>
-            <div className="text-center">
-              <div className="relative w-24 h-24 mx-auto mb-4">
-                <svg className="w-24 h-24 transform -rotate-90" viewBox="0 0 36 36">
-                  <path
-                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                    fill="none"
-                    stroke="#374151"
-                    strokeWidth="2"
-                  />
-                  <path
-                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                    fill="none"
-                    stroke="#8B5CF6"
-                    strokeWidth="2"
-                    strokeDasharray={`${confidence}, 100`}
-                  />
-                </svg>
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="text-2xl font-bold text-white">{Math.round(confidence)}%</span>
-                </div>
-              </div>
-              <p className="text-gray-400">Real-time accuracy</p>
+            <h3 className="text-xl font-bold text-white mb-4">Audio Waveform</h3>
+            <div className="bg-black/20 rounded-lg p-4 h-32 flex items-end justify-center space-x-1">
+              {waveformData.map((height, index) => (
+                <motion.div
+                  key={index}
+                  animate={{ height: `${height}%` }}
+                  transition={{ duration: 0.1 }}
+                  className="bg-gradient-to-t from-primary-500 to-secondary-500 w-2 rounded-t-sm min-h-[2px]"
+                />
+              ))}
             </div>
           </GlassCard>
         </div>
-
-        {/* Waveform Visualizer */}
-        <GlassCard className="p-6">
-          <h3 className="text-xl font-bold text-white mb-4">Audio Waveform</h3>
-          <div className="bg-black/20 rounded-lg p-4 h-32 flex items-end justify-center space-x-1">
-            {waveformData.map((height, index) => (
-              <motion.div
-                key={index}
-                animate={{ height: `${height}%` }}
-                transition={{ duration: 0.1 }}
-                className="bg-gradient-to-t from-primary-500 to-secondary-500 w-2 rounded-t-sm min-h-[2px]"
-              />
-            ))}
-          </div>
-        </GlassCard>
+        {/* Generate Guest Link Button */}
+        <div>
+          <Toaster position="top-right" reverseOrder={false} />
+          <GuestLinkGenerator meetingId="yourRoomCodeHere" />
+        </div>
 
         {/* Transcription Output */}
         <GlassCard className="p-6">
@@ -274,19 +268,24 @@ const AudioCapture = () => {
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            className="px-6 py-3 bg-primary-500 text-white rounded-lg font-medium hover:bg-primary-600 transition-colors duration-200"
-          >
-            Generate Questions
-          </motion.button>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className="px-6 py-3 bg-white/10 text-white rounded-lg font-medium hover:bg-white/20 transition-colors duration-200"
+            onClick={downloadTranscript}
+            disabled={!transcription}
+            className="px-6 py-3 bg-white/10 text-white rounded-lg font-medium hover:bg-white/20 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Export Transcript
           </motion.button>
         </div>
       </motion.div>
+      {downloaded && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 20 }}
+          className="fixed bottom-6 right-6 bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg z-50"
+        >
+          Transcript downloaded!
+        </motion.div>
+      )}
     </DashboardLayout>
   );
 };
