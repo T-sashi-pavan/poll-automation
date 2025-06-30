@@ -78,6 +78,26 @@ const CreateManualPoll = () => {
       const filledOptions = pollData.options.filter((opt) => opt.text.trim())
       if (filledOptions.length < 2) {
         newErrors.options = "At least 2 options are required for multiple choice"
+      } else {
+        const texts = filledOptions.map((opt) => opt.text.trim().toLowerCase())
+        const uniqueTexts = new Set(texts)
+        if (uniqueTexts.size !== texts.length) {
+          newErrors.options = "All options must be unique for multiple choice"
+        }
+      }
+    }
+
+    // Validate options for Opinion
+    if (pollData.type === "opinion") {
+      const filledOptions = pollData.options.filter((opt) => opt.text.trim())
+      if (filledOptions.length < 2) {
+        newErrors.options = "At least 2 options are required for opinion poll"
+      } else {
+        const texts = filledOptions.map((opt) => opt.text.trim().toLowerCase())
+        const uniqueTexts = new Set(texts)
+        if (uniqueTexts.size !== texts.length) {
+          newErrors.options = "All options must be unique for opinion poll"
+        }
       }
     }
 
@@ -100,6 +120,11 @@ const CreateManualPoll = () => {
 
     setIsSubmitting(false)
     setShowSuccess(true)
+
+    // Scroll to top so user sees the success message
+    if (typeof window !== "undefined") {
+      window.scrollTo({ top: 0, behavior: "smooth" })
+    }
 
     // Reset form after success
     setTimeout(() => {
