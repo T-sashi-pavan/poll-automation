@@ -30,6 +30,7 @@ interface PollData {
   timerDuration: number
   timerUnit: "seconds" | "minutes"
   shortAnswerPlaceholder?: string
+  correctAnswer?: string // id of the correct option for MCQ/TrueFalse
 }
 
 interface ValidationErrors {
@@ -52,6 +53,7 @@ const CreateManualPoll = () => {
     timerDuration: 30,
     timerUnit: "seconds",
     shortAnswerPlaceholder: "",
+    correctAnswer: undefined,
   })
 
   const [errors, setErrors] = useState<ValidationErrors>({})
@@ -78,12 +80,39 @@ const CreateManualPoll = () => {
       const filledOptions = pollData.options.filter((opt) => opt.text.trim())
       if (filledOptions.length < 2) {
         newErrors.options = "At least 2 options are required for multiple choice"
+      } else {
+        const texts = filledOptions.map((opt) => opt.text.trim().toLowerCase())
+        const uniqueTexts = new Set(texts)
+        if (uniqueTexts.size !== texts.length) {
+          newErrors.options = "All options must be unique for multiple choice"
+        }
+      }
+    }
+
+    // Validate options for Opinion
+    if (pollData.type === "opinion") {
+      const filledOptions = pollData.options.filter((opt) => opt.text.trim())
+      if (filledOptions.length < 2) {
+        newErrors.options = "At least 2 options are required for opinion poll"
+      } else {
+        const texts = filledOptions.map((opt) => opt.text.trim().toLowerCase())
+        const uniqueTexts = new Set(texts)
+        if (uniqueTexts.size !== texts.length) {
+          newErrors.options = "All options must be unique for opinion poll"
+        }
       }
     }
 
     // Validate timer
     if (pollData.timerEnabled && pollData.timerDuration <= 0) {
       newErrors.timer = "Timer duration must be greater than 0"
+    }
+
+    // Require correct answer for MCQ and True/False
+    if ((pollData.type === "mcq" || pollData.type === "truefalse")) {
+      if (!pollData.correctAnswer || !pollData.options.some(opt => opt.text.trim() === pollData.correctAnswer?.trim())) {
+        newErrors.options = "Please enter the correct answer exactly as one of the options above before creating the poll"
+      }
     }
 
     setErrors(newErrors)
@@ -101,6 +130,11 @@ const CreateManualPoll = () => {
     setIsSubmitting(false)
     setShowSuccess(true)
 
+    // Scroll to top so user sees the success message
+    if (typeof window !== "undefined") {
+      window.scrollTo({ top: 0, behavior: "smooth" })
+    }
+
     // Reset form after success
     setTimeout(() => {
       setShowSuccess(false)
@@ -117,6 +151,7 @@ const CreateManualPoll = () => {
         timerDuration: 30,
         timerUnit: "seconds",
         shortAnswerPlaceholder: "",
+        correctAnswer: undefined,
       })
       setErrors({})
     }, 3000)
@@ -178,6 +213,7 @@ const CreateManualPoll = () => {
       type: newType,
       options: newOptions,
       shortAnswerPlaceholder: newType === "shortanswer" ? "" : undefined,
+      correctAnswer: undefined,
     }))
   }
 
@@ -221,7 +257,10 @@ const CreateManualPoll = () => {
                     <div className="relative">
                       <textarea
                         value={pollData.title}
-                        onChange={(e) => setPollData((prev) => ({ ...prev, title: e.target.value }))}
+                        onChange={(e) => {
+                          setPollData((prev) => ({ ...prev, title: e.target.value }))
+                          if (errors.title) setErrors((prev) => ({ ...prev, title: undefined }))
+                        }}
                         placeholder="Type your question here..."
                         rows={3}
                         className={`w-full px-4 py-3 bg-white/5 border rounded-lg text-white placeholder-gray-400 resize-none transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500/50 ${errors.title ? "border-red-500/50" : "border-white/10"
@@ -327,7 +366,21 @@ const CreateManualPoll = () => {
                                     <input
                                       type="text"
                                       value={option.text}
-                                      onChange={(e) => updateOption(option.id, e.target.value)}
+                                      onChange={e => {
+                                        updateOption(option.id, e.target.value)
+                                        if (errors.options && pollData.type === "mcq") {
+                                          const filledOptions = pollData.options.map(opt => opt.id === option.id ? e.target.value : opt.text).filter(text => text.trim())
+                                          const texts = filledOptions.map(text => text.trim().toLowerCase())
+                                          const uniqueTexts = new Set(texts)
+                                          if (filledOptions.length < 2) {
+                                            setErrors(prev => ({ ...prev, options: "At least 2 options are required for multiple choice" }))
+                                          } else if (uniqueTexts.size !== texts.length) {
+                                            setErrors(prev => ({ ...prev, options: "All options must be unique for multiple choice" }))
+                                          } else {
+                                            setErrors(prev => ({ ...prev, options: undefined }))
+                                          }
+                                        }
+                                      }}
                                       placeholder={`Option ${option.id.toUpperCase()}`}
                                       className="flex-1 px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-400 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500/50"
                                     />
@@ -344,6 +397,22 @@ const CreateManualPoll = () => {
                                   </motion.div>
                                 ))}
                               </div>
+                              <div className="mt-4">
+                                <label className="block text-sm font-medium text-white mb-1">What is the correct answer?</label>
+                                <input
+                                  type="text"
+                                  value={pollData.correctAnswer || ""}
+                                  onChange={e => {
+                                    setPollData(prev => ({ ...prev, correctAnswer: e.target.value }))
+                                    if (errors.options && pollData.options.some(opt => opt.text.trim() === e.target.value.trim())) {
+                                      setErrors(prev => ({ ...prev, options: undefined }))
+                                    }
+                                  }}
+                                  placeholder="Type the correct answer exactly as one of the options"
+                                  className={`w-full px-4 py-2 bg-white/5 border rounded-lg text-white placeholder-gray-400 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500/50 ${errors.options ? "border-red-500/50" : "border-white/10"}`}
+                                />
+                                <div className="text-xs text-gray-400 mt-1">Enter the correct answer exactly as it appears in the options above.</div>
+                              </div>
                             </>
                           )}
 
@@ -352,20 +421,28 @@ const CreateManualPoll = () => {
                             <>
                               <label className="block text-lg font-semibold text-white">Answer Options</label>
                               <div className="space-y-3">
-                                <div className="flex items-center space-x-3 p-4 bg-white/5 border border-white/10 rounded-lg">
-                                  <div className="w-8 h-8 bg-gradient-to-r from-green-500 to-emerald-500 rounded-lg flex items-center justify-center text-white font-bold text-sm">
-                                    T
+                                {pollData.options.map((option) => (
+                                  <div key={option.id} className="flex items-center space-x-3 p-4 bg-white/5 border border-white/10 rounded-lg">
+                                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold text-sm ${option.id === "true" ? "bg-gradient-to-r from-green-500 to-emerald-500" : "bg-gradient-to-r from-red-500 to-rose-500"}`}>{option.id === "true" ? "T" : "F"}</div>
+                                    <span className="text-white font-medium">{option.text}</span>
                                   </div>
-                                  <span className="text-white font-medium">True</span>
-                                  <div className="ml-auto w-4 h-4 border-2 border-green-500 rounded-full bg-green-500/20"></div>
-                                </div>
-                                <div className="flex items-center space-x-3 p-4 bg-white/5 border border-white/10 rounded-lg">
-                                  <div className="w-8 h-8 bg-gradient-to-r from-red-500 to-rose-500 rounded-lg flex items-center justify-center text-white font-bold text-sm">
-                                    F
-                                  </div>
-                                  <span className="text-white font-medium">False</span>
-                                  <div className="ml-auto w-4 h-4 border-2 border-red-500 rounded-full bg-red-500/20"></div>
-                                </div>
+                                ))}
+                              </div>
+                              <div className="mt-4">
+                                <label className="block text-sm font-medium text-white mb-1">What is the correct answer?</label>
+                                <input
+                                  type="text"
+                                  value={pollData.correctAnswer || ""}
+                                  onChange={e => {
+                                    setPollData(prev => ({ ...prev, correctAnswer: e.target.value }))
+                                    if (errors.options && pollData.options.some(opt => opt.text.trim() === e.target.value.trim())) {
+                                      setErrors(prev => ({ ...prev, options: undefined }))
+                                    }
+                                  }}
+                                  placeholder="Type the correct answer exactly as one of the options (True or False)"
+                                  className={`w-full px-4 py-2 bg-white/5 border rounded-lg text-white placeholder-gray-400 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500/50 ${errors.options ? "border-red-500/50" : "border-white/10"}`}
+                                />
+                                <div className="text-xs text-gray-400 mt-1">Enter the correct answer exactly as it appears in the options above.</div>
                               </div>
                             </>
                           )}
