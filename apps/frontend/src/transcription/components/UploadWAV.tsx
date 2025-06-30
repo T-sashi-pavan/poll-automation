@@ -43,7 +43,10 @@ const LiveTranscriptionComponent: React.FC = () => {
       meetingId: meetingId,
       proposedSpeakerName: speaker,
       onTranscription: handleTranscription,
-      onStatus: (msg) => console.log("Status:", msg), // Add a dummy or proper handler
+      onStatus: (msg) => {
+        console.log("Status:", msg);
+        setStatus(msg); 
+       }, 
       onError: (err) => handleError(err),
       onStreamEnd: handleStreamEnd,
     });
