@@ -7,9 +7,10 @@ import { Settings, Save, RotateCcw, Zap } from "lucide-react"
 import GlassCard from "./GlassCard"
 import SourceToggle from "./controls/SourceToggle"
 import FrequencySelector from "./controls/FrequencySelector"
-import QuestionQuantitySlider from "./controls/QuestionQunatitySlider"
+import QuestionQuantitySlider from "./controls/QuestionQuantitySlider"
 import QuestionTypeSelector from "./controls/QuestionTypeSelector"
 import ContextRangeSelector from "./controls/ContextRangeSelector"
+import DifficultyRangeSelector from "./controls/DifficultyRangeSelector"
 
 interface AIControlPanelProps {
   isOpen: boolean
@@ -35,10 +36,18 @@ const AIControlPanel: React.FC<AIControlPanelProps> = ({ isOpen, onToggle, showF
     contextRange: "last5",
   })
 
+  const [difficulty, setDifficulty] = useState<string>("all")
+
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
 
   const updateConfig = (updates: Partial<AIConfig>) => {
     setConfig((prev) => ({ ...prev, ...updates }))
+    setHasUnsavedChanges(true)
+  }
+
+  // Add this function to handle difficulty change and set unsaved changes
+  const handleDifficultyChange = (value: string) => {
+    setDifficulty(value)
     setHasUnsavedChanges(true)
   }
 
@@ -59,6 +68,7 @@ const AIControlPanel: React.FC<AIControlPanelProps> = ({ isOpen, onToggle, showF
       types: ["mcq", "truefalse"],
       contextRange: "last5",
     })
+    setDifficulty("all")
     setHasUnsavedChanges(false)
   }
 
@@ -179,6 +189,12 @@ const AIControlPanel: React.FC<AIControlPanelProps> = ({ isOpen, onToggle, showF
                 customRange={config.customRange}
                 onRangeChange={(contextRange, customRange) => updateConfig({ contextRange, customRange })}
               />
+            </GlassCard>
+
+            {/* Difficulty Level Selector */}
+            <GlassCard className="p-4">
+              <div className="mb-2 text-sm font-medium text-gray-300">Difficulty Level</div>
+              <DifficultyRangeSelector value={difficulty} onChange={handleDifficultyChange} />
             </GlassCard>
           </div>
 
