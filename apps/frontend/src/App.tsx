@@ -9,7 +9,6 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import HostDashboard from './pages/HostDashboard';
-import OrbitalHostDashboard from './pages/OrbitalHostDashboard';
 import StudentDashboard from './pages/StudentDashboard';
 import AudioCapture from './pages/AudioCapture';
 import AIQuestionFeed from './pages/AIQuestionFeed';
@@ -51,9 +50,6 @@ function App() {
                 {/* Host Dashboard Routes */}
                 <Route path="/host" element={
                     <HostDashboard />
-                } />
-                <Route path="/host/orbital" element={
-                    <OrbitalHostDashboard />
                 } />
                 <Route path="/host/audio" element={
                     <AudioCapture />
