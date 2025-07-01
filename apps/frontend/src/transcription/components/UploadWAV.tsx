@@ -1,12 +1,11 @@
-// Example React Component
 import React, { useState, useRef } from "react";
 import { MicrophoneStreamer } from "../utils/microphoneStream";
-// Correct import for TranscriptionResult from the shared types
 import type { TranscriptionResult } from "@shared/types";
 
 const LiveTranscriptionComponent: React.FC = () => {
   const [transcriptions, setTranscriptions] = useState<string[]>([]);
   const [isRecording, setIsRecording] = useState(false);
+  const [status, setStatus] = useState("Idle"); // ✅ status state
   const streamerRef = useRef<MicrophoneStreamer | null>(null);
 
   const meetingId = "live_meeting_123"; // Replace with dynamic ID
@@ -14,35 +13,34 @@ const LiveTranscriptionComponent: React.FC = () => {
 
   const handleTranscription = (data: TranscriptionResult) => {
     console.log("Received transcription:", data.text);
-    // You'll likely want to display these incrementally
-    // For real-time updates, you might append to a single mutable string
-    // or replace the last entry if it's a partial update.
-    // For now, simply adding new lines:
     setTranscriptions((prev) => [...prev, data.text]);
-    // Logic for poll generation based on data.text can go here
-    // e.g., check for keywords: if (data.text.toLowerCase().includes("poll")) { triggerPoll(); }
+    // You can also trigger poll generation based on keywords here
   };
 
   const handleStreamEnd = () => {
     console.log("Live stream ended.");
     setIsRecording(false);
-    // Clean up UI, finalize transcriptions
+    setStatus("Idle"); // ✅ reset status when stream ends
   };
 
   const handleError = (error: Error | Event | unknown) => {
     console.error("Streaming error:", error);
     setIsRecording(false);
-    // Display error message to user
+    setStatus("Error");
   };
 
   const startRecording = async () => {
-    setTranscriptions([]); // Clear previous transcriptions
+    setTranscriptions([]);
+    setStatus("Connecting...");
     streamerRef.current = new MicrophoneStreamer({
-      websocketUrl: "ws://localhost:3000", // Backend WebSocket URL
+      websocketUrl: "ws://localhost:3000",
       meetingId: meetingId,
       proposedSpeakerName: speaker,
       onTranscription: handleTranscription,
-      onStatus: (msg) => console.log("Status:", msg), // Add a dummy or proper handler
+      onStatus: (msg) => {
+        console.log("Status:", msg);
+        setStatus(msg); // ✅ update live status
+      },
       onError: (err) => handleError(err),
       onStreamEnd: handleStreamEnd,
     });
@@ -53,13 +51,14 @@ const LiveTranscriptionComponent: React.FC = () => {
 
   const stopRecording = () => {
     streamerRef.current?.stop();
-
-    setIsRecording(false); // UI state update immediately
+    setIsRecording(false);
+    setStatus("Stopped");
   };
 
   return (
-    <div>
-      <h1>Live Host Transcription</h1>
+    <div style={{ padding: "1rem", maxWidth: "600px", margin: "auto" }}>
+      <h1>🎙️ Live Host Transcription</h1>
+      <p>Status: <strong>{status}</strong></p> {/* ✅ Display status */}
       <button onClick={startRecording} disabled={isRecording}>
         Start Speaking
       </button>
