@@ -20,6 +20,7 @@ import {
   Lightbulb,
 } from "lucide-react"
 import GlassCard from "../GlassCard"
+import { useCopyProtection } from "../../hooks/useCopyProtection"
 
 interface Question {
   id: string
@@ -38,6 +39,7 @@ interface PollQuestionsPageProps {
 }
 
 const PollQuestionsPage: React.FC<PollQuestionsPageProps> = ({ roomCode, onComplete }) => {
+  useCopyProtection(true);
   const [questions] = useState<Question[]>([
     {
       id: "1",
