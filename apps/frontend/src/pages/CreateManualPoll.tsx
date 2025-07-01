@@ -24,7 +24,7 @@ interface PollOption {
 
 interface PollData {
   title: string
-  type: "mcq" | "truefalse" | "shortanswer" | "opinion"
+  types: "mcq" | "truefalse" | "shortanswer" | "opinion"
   options: PollOption[]
   timerEnabled: boolean
   timerDuration: number
@@ -42,7 +42,7 @@ interface ValidationErrors {
 const CreateManualPoll = () => {
   const [pollData, setPollData] = useState<PollData>({
     title: "",
-    type: "mcq",
+    types: "mcq",
     options: [
       { id: "a", text: "" },
       { id: "b", text: "" },
@@ -76,7 +76,7 @@ const CreateManualPoll = () => {
     }
 
     // Validate options for MCQ
-    if (pollData.type === "mcq") {
+    if (pollData.types === "mcq") {
       const filledOptions = pollData.options.filter((opt) => opt.text.trim())
       if (filledOptions.length < 2) {
         newErrors.options = "At least 2 options are required for multiple choice"
@@ -90,7 +90,7 @@ const CreateManualPoll = () => {
     }
 
     // Validate options for Opinion
-    if (pollData.type === "opinion") {
+    if (pollData.types === "opinion") {
       const filledOptions = pollData.options.filter((opt) => opt.text.trim())
       if (filledOptions.length < 2) {
         newErrors.options = "At least 2 options are required for opinion poll"
@@ -109,7 +109,7 @@ const CreateManualPoll = () => {
     }
 
     // Require correct answer for MCQ and True/False
-    if ((pollData.type === "mcq" || pollData.type === "truefalse")) {
+    if ((pollData.types === "mcq" || pollData.types === "truefalse")) {
       if (!pollData.correctAnswer || !pollData.options.some(opt => opt.text.trim() === pollData.correctAnswer?.trim())) {
         newErrors.options = "Please enter the correct answer exactly as one of the options above before creating the poll"
       }
@@ -120,27 +120,31 @@ const CreateManualPoll = () => {
   }
 
   const handleSubmit = async () => {
-    if (!validateForm()) return
+  console.log(pollData);
+  if (!validateForm()) return;
 
-    setIsSubmitting(true)
+  setIsSubmitting(true);
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 2000))
+  try {
+    const response = await fetch("http://localhost:5001/save_manual_poll", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(pollData),
+    });
 
-    setIsSubmitting(false)
-    setShowSuccess(true)
-
-    // Scroll to top so user sees the success message
-    if (typeof window !== "undefined") {
-      window.scrollTo({ top: 0, behavior: "smooth" })
+    if (!response.ok) {
+      throw new Error("Failed to save poll");
     }
 
-    // Reset form after success
+    // const result = await response.json();
+    console.log("Manual Poll saved");
+    setShowSuccess(true);
+
     setTimeout(() => {
-      setShowSuccess(false)
+      setShowSuccess(false);
       setPollData({
         title: "",
-        type: "mcq",
+        types: "mcq",
         options: [
           { id: "a", text: "" },
           { id: "b", text: "" },
@@ -151,11 +155,17 @@ const CreateManualPoll = () => {
         timerDuration: 30,
         timerUnit: "seconds",
         shortAnswerPlaceholder: "",
-        correctAnswer: undefined,
-      })
-      setErrors({})
-    }, 3000)
+      });
+      setErrors({});
+    }, 3000);
+  } catch (err) {
+    console.error("❌ Error submitting poll:", err);
+    alert("Failed to submit poll");
+  } finally {
+    setIsSubmitting(false);
   }
+};
+
 
   const updateOption = (id: string, text: string) => {
     setPollData((prev) => ({
@@ -179,7 +189,7 @@ const CreateManualPoll = () => {
     }))
   }
 
-  const handleTypeChange = (newType: PollData["type"]) => {
+  const handleTypeChange = (newType: PollData["types"]) => {
     let newOptions: PollOption[] = []
 
     switch (newType) {
@@ -288,13 +298,13 @@ const CreateManualPoll = () => {
                     <label className="block text-lg font-semibold text-white">Question Type</label>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       {questionTypes.map((type) => {
-                        const isSelected = pollData.type === type.id
+                        const isSelected = pollData.types === type.id
                         const Icon = type.icon
 
                         return (
                           <motion.button
                             key={type.id}
-                            onClick={() => handleTypeChange(type.id as PollData["type"])}
+                            onClick={() => handleTypeChange(type.id as PollData["types"])}
                             className={`p-4 rounded-lg border transition-all duration-200 text-left ${isSelected
                                 ? "bg-primary-500/20 text-primary-400 border-primary-500/30 shadow-lg shadow-primary-500/20"
                                 : "bg-white/5 text-gray-300 border-white/10 hover:border-white/20 hover:bg-white/10"
@@ -321,10 +331,10 @@ const CreateManualPoll = () => {
 
               {/* Dynamic Options Based on Question Type */}
               <AnimatePresence>
-                {(pollData.type === "mcq" ||
-                  pollData.type === "truefalse" ||
-                  pollData.type === "shortanswer" ||
-                  pollData.type === "opinion") && (
+                {(pollData.types === "mcq" ||
+                  pollData.types === "truefalse" ||
+                  pollData.types === "shortanswer" ||
+                  pollData.types === "opinion") && (
                     <motion.div
                       initial={{ opacity: 0, y: 20, height: 0 }}
                       animate={{ opacity: 1, y: 0, height: "auto" }}
@@ -334,7 +344,7 @@ const CreateManualPoll = () => {
                       <GlassCard className="p-6">
                         <div className="space-y-4">
                           {/* MCQ Options */}
-                          {pollData.type === "mcq" && (
+                          {pollData.types === "mcq" && (
                             <>
                               <div className="flex items-center justify-between">
                                 <label className="block text-lg font-semibold text-white">Answer Options</label>
@@ -368,7 +378,7 @@ const CreateManualPoll = () => {
                                       value={option.text}
                                       onChange={e => {
                                         updateOption(option.id, e.target.value)
-                                        if (errors.options && pollData.type === "mcq") {
+                                        if (errors.options && pollData.types === "mcq") {
                                           const filledOptions = pollData.options.map(opt => opt.id === option.id ? e.target.value : opt.text).filter(text => text.trim())
                                           const texts = filledOptions.map(text => text.trim().toLowerCase())
                                           const uniqueTexts = new Set(texts)
@@ -417,7 +427,7 @@ const CreateManualPoll = () => {
                           )}
 
                           {/* True/False Options */}
-                          {pollData.type === "truefalse" && (
+                          {pollData.types === "truefalse" && (
                             <>
                               <label className="block text-lg font-semibold text-white">Answer Options</label>
                               <div className="space-y-3">
@@ -448,7 +458,7 @@ const CreateManualPoll = () => {
                           )}
 
                           {/* Short Answer */}
-                          {pollData.type === "shortanswer" && (
+                          {pollData.types === "shortanswer" && (
                             <>
                               <label className="block text-lg font-semibold text-white">Answer Configuration</label>
                               <div className="space-y-3">
@@ -475,7 +485,7 @@ const CreateManualPoll = () => {
                           )}
 
                           {/* Opinion Poll */}
-                          {pollData.type === "opinion" && (
+                          {pollData.types === "opinion" && (
                             <>
                               <div className="flex items-center justify-between">
                                 <label className="block text-lg font-semibold text-white">Opinion Options</label>
@@ -632,10 +642,11 @@ const CreateManualPoll = () => {
                     {/* Preview Question */}
                     <div className="p-4 bg-white/5 rounded-lg border border-white/10">
                       <p className="text-white font-medium">{pollData.title || "Your question will appear here..."}</p>
+                      
                     </div>
-
+                    
                     {/* Preview Options */}
-                    {pollData.type === "mcq" && (
+                    {pollData.types === "mcq" && (
                       <div className="space-y-2">
                         {pollData.options.map((option) => (
                           <div key={option.id} className="flex items-center space-x-3 p-2 bg-white/5 rounded-lg">
@@ -650,7 +661,7 @@ const CreateManualPoll = () => {
                       </div>
                     )}
 
-                    {pollData.type === "truefalse" && (
+                    {pollData.types === "truefalse" && (
                       <div className="space-y-2">
                         <div className="flex items-center space-x-3 p-2 bg-white/5 rounded-lg">
                           <div className="w-6 h-6 bg-green-500 rounded text-white text-xs flex items-center justify-center font-bold">
@@ -667,7 +678,7 @@ const CreateManualPoll = () => {
                       </div>
                     )}
 
-                    {pollData.type === "shortanswer" && (
+                    {pollData.types === "shortanswer" && (
                       <div className="p-3 bg-white/5 rounded-lg border border-white/10">
                         <input
                           type="text"
@@ -678,7 +689,7 @@ const CreateManualPoll = () => {
                       </div>
                     )}
 
-                    {pollData.type === "opinion" && (
+                    {pollData.types === "opinion" && (
                       <div className="space-y-2">
                         {pollData.options.map((option, index) => (
                           <div key={option.id} className="flex items-center space-x-3 p-2 bg-white/5 rounded-lg">
