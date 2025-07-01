@@ -71,7 +71,7 @@ class PollData(BaseModel):
 def save_settings(settings: Settings):
     global current_settings
     current_settings = settings.dict()
-    print(f"Settings updated at {datetime.now()}:\n{current_settings}")
+    # print(f"Settings updated at {datetime.now()}:\n{current_settings}")
     return {"message": "Settings saved"}
 
 @app.get("/settings")
@@ -92,13 +92,14 @@ def get_transcripts():
 async def ws_transcripts(websocket: WebSocket):
     await websocket.accept()
     clients.add(websocket)
-    print(f"WebSocket connected: {datetime.now()}")
+    # print(f"WebSocket connected: {datetime.now()}")
 
     try:
         while True:
             await asyncio.sleep(60)  
     except Exception:
-        print("WebSocket disconnected")
+        # print("WebSocket disconnected")
+        pass
     finally:
         clients.discard(websocket)
 
@@ -119,7 +120,7 @@ async def rotate_transcripts():
             with open(file, "r", encoding="utf-8") as f:
                 transcript_data = json.load(f)
 
-            print(f"Transcript rotated: {file.name} @ {datetime.now()}")
+            # print(f"Transcript rotated: {file.name} @ {datetime.now()}")
 
             disconnected = set()
             for client in clients:
@@ -130,7 +131,8 @@ async def rotate_transcripts():
             clients.difference_update(disconnected)
 
         except Exception as e:
-            print(f"Error loading transcript: {e}")
+            # print(f"Error loading transcript: {e}")
+            pass
 
 @app.on_event("startup")
 async def startup_event():
@@ -149,7 +151,7 @@ def convert_object_ids(data):
 
 @app.post("/generate")
 def generate_from_transcript():
-    print("Generation requested...")
+    # print("Generation requested...")
     start=datetime.now()
     
     if not transcript_data.get("text"):
@@ -189,9 +191,10 @@ def generate_from_transcript():
     try:
         mongo_collection.insert_many(questions_to_insert)
     except Exception as e:
-        print(f"Failed to save to MongoDB: {e}")
+        # print(f"Failed to save to MongoDB: {e}")
+        pass
     end=datetime.now()
-    print(end-start)
+    # print(end-start)
     return {
         "message": "Questions generated and saved successfully",
         "count": len(questions_to_insert),

@@ -85,7 +85,7 @@ function flushBuffer(meetingId: string): void {
 
   if (llmSocket && llmSocket.readyState === WebSocket.OPEN) {
     llmSocket.send(JSON.stringify(payload));
-    console.log(`✅ Forwarded transcript chunk for meeting ${meetingId}`);
+    console.log(`✅ Forwarded transcript chunk to LLM for meeting ${meetingId}`);
   } else {
     console.warn(`⚠️ LLM socket not open. Skipped transcript for ${meetingId}`);
   }

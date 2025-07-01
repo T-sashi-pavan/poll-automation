@@ -15,10 +15,16 @@ const LiveTranscriptFeed: React.FC<LiveTranscriptFeedProps> = ({ backendWsUrl })
 
   useEffect(() => {
     const socket = new WebSocket(backendWsUrl);
+    console.log('[LiveTranscriptFeed] Connecting to WebSocket:', backendWsUrl);
+
+    socket.onopen = () => {
+      console.log('[LiveTranscriptFeed] WebSocket connected');
+    };
 
     socket.onmessage = (event) => {
       try {
         const data: TranscriptionResult = JSON.parse(event.data);
+        console.log('[LiveTranscriptFeed] Received data:', data);
 
         if (data.type === 'transcription') {
           setTranscripts((prev) => {
@@ -37,8 +43,16 @@ const LiveTranscriptFeed: React.FC<LiveTranscriptFeedProps> = ({ backendWsUrl })
           });
         }
       } catch (err) {
-        console.error('Invalid transcript data:', err);
+        console.error('[LiveTranscriptFeed] Invalid transcript data:', err);
       }
+    };
+
+    socket.onerror = (err) => {
+      console.error('[LiveTranscriptFeed] WebSocket error:', err);
+    };
+
+    socket.onclose = () => {
+      console.log('[LiveTranscriptFeed] WebSocket closed');
     };
 
     return () => {

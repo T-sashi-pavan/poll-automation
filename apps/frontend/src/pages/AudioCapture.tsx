@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'; // ✅ Fixed useRef error
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Mic, MicOff, Volume2, Activity, Pause, Play } from 'lucide-react';
 import DashboardLayout from '../components/DashboardLayout';
@@ -41,6 +41,7 @@ const AudioCapture = () => {
 
   const toggleRecording = async () => {
     if (isRecording) {
+      console.log("🛑 Stopping recording");
       setIsRecording(false);
       setIsPaused(false);
       if (mediaRecorderRef.current?.state === "recording") mediaRecorderRef.current.stop();
@@ -50,6 +51,7 @@ const AudioCapture = () => {
     }
 
     try {
+      console.log("🎙️ Requesting microphone access...");
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: selectedMic === 'default' ? true : { deviceId: { exact: selectedMic } }
       });
@@ -58,6 +60,7 @@ const AudioCapture = () => {
       ws.binaryType = "arraybuffer";
 
       ws.onopen = () => {
+        console.log("✅ WebSocket connection opened");
         ws.send(JSON.stringify({
           type: "start",
           guestId: "host",
@@ -70,29 +73,39 @@ const AudioCapture = () => {
         recorder.ondataavailable = (event) => {
           if (event.data.size > 0 && ws.readyState === WebSocket.OPEN) {
             event.data.arrayBuffer().then(buffer => {
+              console.debug("📤 Sending audio chunk:", buffer.byteLength);
               ws.send(buffer);
             });
           }
         };
 
-        recorder.start(1000);
+        recorder.start(3000); // 3 seconds chunks
         setIsRecording(true);
         setSocket(ws);
       };
 
       ws.onmessage = (event) => {
+        console.debug("📩 Message from backend:", event.data);
         try {
           const data = JSON.parse(event.data);
           if (data.type === "transcription") {
-            setTranscription((prev) => prev + " " + data.text);
+            if (typeof data.text === "string") {
+              setTranscription(prev => prev + " " + data.text);
+            } else {
+              console.warn("⚠️ Transcription 'text' is not a string:", data.text);
+            }
           }
         } catch (err) {
-          console.error("Invalid transcription response", err);
+          console.error("❌ JSON parsing failed:", err);
         }
       };
 
-      ws.onerror = (err) => console.error("WebSocket error:", err);
-      ws.onclose = () => {
+      ws.onerror = (err) => {
+        console.error("❌ WebSocket error:", err);
+      };
+
+      ws.onclose = (event) => {
+        console.warn(`🔌 WebSocket closed (code: ${event.code})`);
         setIsRecording(false);
         setIsPaused(false);
       };

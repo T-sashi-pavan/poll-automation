@@ -11,13 +11,14 @@ export const getMicrophones = async (): Promise<MediaDeviceInfo[]> => {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     stream.getTracks().forEach((track) => track.stop()); // Stop immediately
     const devices = await navigator.mediaDevices.enumerateDevices();
-    return devices.filter((d) => d.kind === 'audioinput');
+    const mics = devices.filter((d) => d.kind === 'audioinput');
+    console.log('[micManager] Found microphones:', mics);
+    return mics;
   } catch (error) {
-    console.error("Error accessing microphones", error);
+    console.error('[micManager] Error accessing microphones', error);
     return [];
   }
 };
-
 
 /**
  * Selects a microphone by deviceId and updates the current stream and track.
@@ -27,23 +28,29 @@ export async function selectMicrophone(deviceId: string): Promise<MediaStream | 
     currentStream.getTracks().forEach((track) => track.stop());
   }
 
-  const stream = await navigator.mediaDevices.getUserMedia({
-    audio: { deviceId: { exact: deviceId } }
-  });
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      audio: { deviceId: { exact: deviceId } }
+    });
 
-  currentStream = stream;
-  currentTrack = stream.getAudioTracks()[0];
+    currentStream = stream;
+    currentTrack = stream.getAudioTracks()[0];
+    console.log('[micManager] Selected mic stream:', currentTrack.label);
 
-  if (audioContext) {
-    audioContext.close();
+    if (audioContext) {
+      await audioContext.close();
+    }
+
+    audioContext = new AudioContext();
+    const source = audioContext.createMediaStreamSource(stream);
+    gainNode = audioContext.createGain();
+    source.connect(gainNode).connect(audioContext.destination);
+
+    return stream;
+  } catch (err) {
+    console.error('[micManager] Error selecting mic:', err);
+    return null;
   }
-
-  audioContext = new AudioContext();
-  const source = audioContext.createMediaStreamSource(stream);
-  gainNode = audioContext.createGain();
-  source.connect(gainNode).connect(audioContext.destination);
-
-  return stream;
 }
 
 /**
@@ -59,6 +66,7 @@ export function getSelectedMicStream(): MediaStream | null {
 export function toggleMute(): void {
   if (currentTrack) {
     currentTrack.enabled = !currentTrack.enabled;
+    console.log('[micManager] Toggled mute:', !currentTrack.enabled);
   }
 }
 
@@ -68,5 +76,6 @@ export function toggleMute(): void {
 export function setVolume(value: number): void {
   if (gainNode) {
     gainNode.gain.value = value;
+    console.log('[micManager] Volume set to:', value);
   }
 }
