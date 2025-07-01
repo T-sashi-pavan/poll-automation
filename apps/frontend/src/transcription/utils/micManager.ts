@@ -1,9 +1,19 @@
-export async function getSelectedMicStream(): Promise<MediaStream | null> {
+export async function getAvailableMics(): Promise<MediaDeviceInfo[]> {
+  const devices = await navigator.mediaDevices.enumerateDevices();
+  return devices.filter((d) => d.kind === 'audioinput');
+}
+
+export async function getSelectedMicStream(deviceId?: string): Promise<MediaStream | null> {
   try {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    return stream;
+    return await navigator.mediaDevices.getUserMedia({
+      audio: deviceId ? { deviceId: { exact: deviceId } } : true
+    });
   } catch (err) {
-    console.error('Microphone access denied:', err);
+    console.error('Mic access failed:', err);
     return null;
   }
+}
+
+export function selectMicDevice(deviceId: string) {
+  localStorage.setItem('selectedMic', deviceId);
 }
