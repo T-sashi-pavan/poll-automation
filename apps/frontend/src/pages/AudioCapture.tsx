@@ -36,27 +36,50 @@ const AudioCapture = () => {
     }
   }, [isRecording, isPaused]);
 
-  // Simulate transcription
+  //adding real-time transcription logic
   useEffect(() => {
-    if (isRecording && !isPaused) {
-      const mockTranscriptions = [
-        "Today we're going to discuss React hooks and their implementation...",
-        "State management is crucial for building scalable applications...",
-        "Let's explore the useEffect hook and its dependency array...",
-        "Component lifecycle methods can be replaced with hooks...",
-        "Error boundaries are important for handling runtime errors..."
-      ];
+  //       if (isRecording && !isPaused) {
+  //     const mockTranscriptions = [
+  //       "Today we're going to discuss React hooks and their implementation...",
+  //       "State management is crucial for building scalable applications...",
+  //       "Let's explore the useEffect hook and its dependency array...",
+  //       "Component lifecycle methods can be replaced with hooks...",
+  //       "Error boundaries are important for handling runtime errors..."
+  //     ];
 
-      const interval = setInterval(() => {
-        const randomText = mockTranscriptions[Math.floor(Math.random() * mockTranscriptions.length)];
-        setTranscription(prev => prev + " " + randomText);
-        setConfidence(Math.random() * 30 + 70); // 70-100% confidence
-      }, 3000);
+  //     const interval = setInterval(() => {
+  //       const randomText = mockTranscriptions[Math.floor(Math.random() * mockTranscriptions.length)];
+  //       setTranscription(prev => prev + " " + randomText);
+  //       setConfidence(Math.random() * 30 + 70); // 70-100% confidence
+  //     }, 3000);
 
-      return () => clearInterval(interval);
+  //     return () => clearInterval(interval);
+  //   }
+  // }, [isRecording, isPaused]);
+  const socket = new WebSocket("ws://localhost:5001/ws/transcripts");
+  socket.onopen = () => {
+    console.log("Connected to transcript WebSocket");
+  };
+  socket.onmessage = async (event) => {
+    const data = JSON.parse(event.data);
+    if (data.status === "updated") {
+      console.log("Transcript update received!");
+      try {
+        const res = await fetch("http://localhost:5001/transcripts");
+        const json = await res.json();
+        setTranscription(json.text || ""); 
+      } catch (err) {
+        console.error("Failed to fetch transcript:", err);
+      }
     }
-  }, [isRecording, isPaused]);
-
+  };
+  socket.onerror = (err) => {
+    console.error("WebSocket error:", err);
+  };
+  return () => {
+    socket.close();
+  };
+}, []);
   const toggleRecording = () => {
     if (isRecording) {
       setIsRecording(false);

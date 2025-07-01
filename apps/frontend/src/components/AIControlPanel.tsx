@@ -42,13 +42,53 @@ const AIControlPanel: React.FC<AIControlPanelProps> = ({ isOpen, onToggle, showF
     setHasUnsavedChanges(true)
   }
 
-  const handleSave = () => {
-    // Here you would typically save to your backend/state management
-    console.log("Saving AI configuration:", config)
-    setHasUnsavedChanges(false)
+  const handleSave = async() => {
+    try{
+      const response= await fetch("http://localhost:5001/settings",{
+        method:"POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(config),
+      });
+      if(response.ok){
+         alert("Host Settings saved successfully!");
+         // Start WebSocket connection after settings are saved
+          const socket = new WebSocket("ws://localhost:5001/ws/transcripts");
+          socket.onopen = () => {
+            console.log("WebSocket connected after saving the host settings!");
+          };
+          socket.onmessage = async (event) => {
+          const data = JSON.parse(event.data);
+          if (data.status === "updated") {
+            console.log("Transcript updated via WebSocket");
 
-    // Show success feedback
-    // You could add a toast notification here
+            try {
+              const res = await fetch("http://localhost:5001/transcripts");
+              const json = await res.json();
+              console.log("Transcript:", json.text);
+              await fetch("http://localhost:5001/generate", { method: "POST" });
+              console.log("Questions generated");
+            } catch (err) {
+              console.error("Failed to fetch transcript or generate questions:", err);
+            }
+          }
+        };
+        socket.onerror = (err) => {
+          console.error("WebSocket error:", err);
+        };
+        socket.onclose = () => {
+          console.log("WebSocket closed");
+        };
+          setHasUnsavedChanges(false);
+        }
+        else {
+          alert("Failed to save Host Settings.");
+        }
+      }
+    catch (error) {
+      console.error("Error saving settings:", error);
+      alert("Network error occurred.");
+    }
+    console.log("Saving AI configuration:", config)
   }
 
   const handleReset = () => {
