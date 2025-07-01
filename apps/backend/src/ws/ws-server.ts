@@ -11,7 +11,9 @@ import { forwardToLLMBuffer } from '../services/llm-forwarder';
 
 dotenv.config();
 
-const WHISPER_WS_URL = process.env.WHISPER_WS_URL || 'ws://localhost:8001';
+const WHISPER_WS_URL = process.env.WHISPER_WS_URL || 'ws://localhost:8000';
+console.log("🔗 Backend will connect to Whisper at:", WHISPER_WS_URL);
+
 
 interface ClientSession {
   frontendSocket: WebSocket;
