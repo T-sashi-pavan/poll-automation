@@ -1,14 +1,14 @@
-import axios from 'axios';
+import WebSocket from 'ws';
 import dotenv from 'dotenv';
-import { ServerToClientMessage } from '@poll-automation/types';
 import {
+  ServerToClientMessage,
   TranscriptChunk,
   TranscriptSegment
 } from '@poll-automation/types';
 
 dotenv.config();
 
-const LLM_FORWARD_URL = process.env.LLM_FORWARD_URL || '';
+const LLM_FORWARD_URL = process.env.LLM_FORWARD_URL || 'ws://localhost:5001/ws/transcripts';
 
 type MeetingBuffer = {
   transcripts: TranscriptSegment[];
@@ -19,6 +19,36 @@ type MeetingBuffer = {
 
 const buffers = new Map<string, MeetingBuffer>();
 
+let llmSocket: WebSocket | null = null;
+
+/**
+ * Establish persistent WebSocket connection to LLM service
+ */
+function connectToLLM() {
+  if (llmSocket && llmSocket.readyState === WebSocket.OPEN) return;
+
+  llmSocket = new WebSocket(LLM_FORWARD_URL);
+
+  llmSocket.on('open', () => {
+    console.log('🧠 Connected to LLM WebSocket');
+  });
+
+  llmSocket.on('error', (err) => {
+    console.error('❌ LLM WebSocket error:', err);
+  });
+
+  llmSocket.on('close', () => {
+    console.warn('🔁 LLM WebSocket disconnected. Reconnecting...');
+    setTimeout(connectToLLM, 2000);
+  });
+}
+
+// Connect immediately on module load
+connectToLLM();
+
+/**
+ * Buffers a new transcription result and schedules flush
+ */
 export function forwardToLLMBuffer(msg: ServerToClientMessage): void {
   const { meetingId, guestId, start, end, text } = msg;
   if (!meetingId) return;
@@ -36,12 +66,13 @@ export function forwardToLLMBuffer(msg: ServerToClientMessage): void {
   const buffer = buffers.get(meetingId)!;
 
   buffer.transcripts.push({ guestId, start, end, text });
-
-  // Update time range
   buffer.chunkEnd = Math.max(buffer.chunkEnd, end);
 }
 
-async function flushBuffer(meetingId: string): Promise<void> {
+/**
+ * Sends the buffered chunk for a given meeting to the LLM WebSocket
+ */
+function flushBuffer(meetingId: string): void {
   const buffer = buffers.get(meetingId);
   if (!buffer || buffer.transcripts.length === 0) return;
 
@@ -52,14 +83,13 @@ async function flushBuffer(meetingId: string): Promise<void> {
     transcripts: buffer.transcripts
   };
 
-  try {
-    await axios.post(LLM_FORWARD_URL, payload);
+  if (llmSocket && llmSocket.readyState === WebSocket.OPEN) {
+    llmSocket.send(JSON.stringify(payload));
     console.log(`✅ Forwarded transcript chunk for meeting ${meetingId}`);
-  } catch (err) {
-    console.error(`❌ Failed to forward transcript for ${meetingId}`, err);
-  } finally {
-    // Clear buffer for next cycle
-    clearTimeout(buffer.timeout);
-    buffers.delete(meetingId);
+  } else {
+    console.warn(`⚠️ LLM socket not open. Skipped transcript for ${meetingId}`);
   }
+
+  clearTimeout(buffer.timeout);
+  buffers.delete(meetingId);
 }

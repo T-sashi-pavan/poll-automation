@@ -1,6 +1,6 @@
 import pathlib
 #Reason for adding the home directory: Force the home directory to avoid Path.home() failure in Windows subprocesses used by ChromaDB
-pathlib.Path.home = lambda: pathlib.Path("C:/Users/keerthana J") #Add your home directory here
+pathlib.Path.home = lambda: pathlib.Path("C:/Users/srimv/") #Add your home directory here
 from fastapi import FastAPI, WebSocket
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
