@@ -67,11 +67,6 @@ const AIQuestionFeed = () => {
   const [autoLaunch, setAutoLaunch] = useState(false)
   const [timerEnabled, setTimerEnabled] = useState(true)
   const [defaultTimer, setDefaultTimer] = useState(30)
-  const [filterSettings, setFilterSettings] = useState({
-    difficulty: "all",
-    tags: [],
-    minConfidence: 80,
-  })
   const [isControlPanelOpen, setIsControlPanelOpen] = useState(false)
 
   const handleApprove = (id: number) => {
@@ -118,15 +113,7 @@ const AIQuestionFeed = () => {
     }
   }
 
-  const filteredQuestions = questions.filter((q) => {
-    if (filterSettings.difficulty !== "all" && q.difficulty !== filterSettings.difficulty) {
-      return false
-    }
-    if (q.confidence < filterSettings.minConfidence) {
-      return false
-    }
-    return true
-  })
+  const filteredQuestions = questions
 
   return (
 <DashboardLayout>
@@ -165,54 +152,7 @@ const AIQuestionFeed = () => {
 
 
         {/* Controls */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Filter Settings */}
-          <GlassCard className="p-6">
-            <h3 className="text-lg font-bold text-white mb-4 flex items-center">
-              <Filter className="w-5 h-5 mr-2" />
-              Filter Settings
-            </h3>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Difficulty Level</label>
-                <select
-                  value={filterSettings.difficulty}
-                  onChange={(e) => setFilterSettings((prev) => ({ ...prev, difficulty: e.target.value }))}
-                  className="w-full bg-white/10 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
-                >
-                  <option value="all" className="bg-gray-800">
-                    All Levels
-                  </option>
-                  <option value="Easy" className="bg-gray-800">
-                    Easy
-                  </option>
-                  <option value="Medium" className="bg-gray-800">
-                    Medium
-                  </option>
-                  <option value="Hard" className="bg-gray-800">
-                    Hard
-                  </option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Min Confidence: {filterSettings.minConfidence}%
-                </label>
-                <input
-                  type="range"
-                  min="50"
-                  max="100"
-                  value={filterSettings.minConfidence}
-                  onChange={(e) =>
-                    setFilterSettings((prev) => ({ ...prev, minConfidence: Number.parseInt(e.target.value) }))
-                  }
-                  className="w-full"
-                />
-              </div>
-            </div>
-          </GlassCard>
-
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Auto-Launch Settings */}
           <GlassCard className="p-6">
             <h3 className="text-lg font-bold text-white mb-4 flex items-center">
@@ -261,7 +201,7 @@ const AIQuestionFeed = () => {
               </div>
               )}
               <div className="flex items-center justify-between">
-                <label className="text-sm font-medium text-gray-300">Stop Auto-Generated Questions</label>
+                <label className="text-sm font-medium text-gray-300">Stop Generating More Questions</label>
                 <button
                   className="px-4 py-1.5 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg transition-all duration-200"
                 >
@@ -289,12 +229,6 @@ const AIQuestionFeed = () => {
                 <span className="text-gray-300">Pending</span>
                 <span className="text-yellow-400 font-medium">
                   {questions.filter((q) => q.status === "pending").length}
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-gray-300">Avg Confidence</span>
-                <span className="text-white font-medium">
-                  {Math.round(questions.reduce((acc, q) => acc + q.confidence, 0) / questions.length)}%
                 </span>
               </div>
             </div>
@@ -333,10 +267,6 @@ const AIQuestionFeed = () => {
                     >
                       {question.status}
                     </span>
-                    <div className="flex items-center space-x-1 text-gray-400">
-                      <Brain className="w-4 h-4" />
-                      <span className="text-xs">{question.confidence}% confidence</span>
-                    </div>
                     <div className="flex items-center space-x-1 text-gray-400">
                       <Clock className="w-4 h-4" />
                       <span className="text-xs">{question.timeEstimate}</span>
