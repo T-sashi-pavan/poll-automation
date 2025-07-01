@@ -51,7 +51,7 @@ def generate_questions_llama_chain(settings: dict):
     retriever = get_retriever(hypothetical_answer)
     docs = retriever.invoke(hypothetical_answer)
     combined_context = docs[0].page_content
-
+    print(settings["quantity"],settings["types"])
     return chain.invoke({
         "combined_context": combined_context,
         "num_questions": settings["quantity"],
