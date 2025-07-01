@@ -5,7 +5,7 @@ from fastapi import FastAPI, WebSocket
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import Literal
+from typing import Literal, List, Optional
 from pathlib import Path
 from datetime import datetime
 import json, asyncio
@@ -18,6 +18,7 @@ from generate_local import generate_questions_with_local_llm
 from pymongo import MongoClient
 mongo_client = MongoClient("mongodb://localhost:27017/")
 mongo_collection = mongo_client["pollgen"]["pollquestions"]
+manual_collection = mongo_client["pollgen"]["manualquestions"]
 
 app = FastAPI()
 
@@ -43,11 +44,27 @@ if JSON_FILES:
 
 #Schema of Host Settings
 class Settings(BaseModel):
-    meeting_id: str
-    questionSource: Literal["gemini", "llama"]
-    numQuestions: int
-    type: Literal["MCQ", "True/False", "Opinion Poll"]
-    difficulty: Literal["easy", "medium", "hard"]
+    # meeting_id: str
+    source: Literal["gemini", "ollama"]
+    frequency: Optional[int] = None
+    quantity: int
+    types: Optional[List[Literal["mcq", "truefalse", "opinionpoll"]]] = None
+    contextRange: Optional[str] = None
+    customRange: Optional[str] = None
+    # difficulty: Literal["easy", "medium", "hard"]
+
+class Option(BaseModel):
+    id: str
+    text: str
+
+class PollData(BaseModel):
+    title: str
+    types: str
+    options: List[Option]
+    timerEnabled: bool
+    timerDuration: int
+    timerUnit: str
+    shortAnswerPlaceholder: Optional[str] = ""
 
 #Host settings Endpoint
 @app.post("/settings")
@@ -60,6 +77,11 @@ def save_settings(settings: Settings):
 @app.get("/settings")
 def get_settings():
     return current_settings or {"message": "No settings found"}
+
+@app.post("/save_manual_poll")
+async def save_poll(data: PollData):
+    result = manual_collection.insert_one(data.dict())
+    return {"message": "Poll saved", "id": str(result.inserted_id)}
 
 #Transcript Endpoint
 @app.get("/transcripts")
@@ -85,7 +107,7 @@ async def rotate_transcripts():
     global current_index, transcript_data
 
     while True:
-        await asyncio.sleep(180)  # Rotate every 3 minutes
+        await asyncio.sleep(80)  # Rotate every 3 minutes
 
         if not JSON_FILES:
             continue
@@ -135,8 +157,8 @@ def generate_from_transcript():
 
     generator = {
         "gemini": generate_questions_with_gemini,
-        "llama": generate_questions_with_local_llm
-    }.get(current_settings.get("questionSource"))
+        "ollama": generate_questions_with_local_llm
+    }.get(current_settings.get("source"))
 
     if not generator:
         return JSONResponse({"error": "Invalid question source"}, status_code=400)
@@ -157,7 +179,7 @@ def generate_from_transcript():
             "explanation": q.get("explanation"),
             "difficulty": q.get("difficulty"),
             "concept": q.get("concept"),
-            "meeting_id": current_settings["meeting_id"],
+            #"meeting_id": current_settings["meeting_id"],
             "created_at": now,
             "is_active": True,
             "is_approved": False

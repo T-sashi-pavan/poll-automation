@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Brain, Check, X, Edit3, Clock, Settings, Filter, Play } from "lucide-react"
+import { Check, X, Edit3, Clock, Settings, Play } from "lucide-react"
 import DashboardLayout from "../components/DashboardLayout"
 import GlassCard from "../components/GlassCard"
 import AIControlPanel from "../components/AIControlPanel"
