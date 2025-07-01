@@ -1,9 +1,8 @@
 import os
-import asyncio
-import websockets
 import json
-from websockets.server import WebSocketServerProtocol
+import asyncio
 from dotenv import load_dotenv
+from fastapi import WebSocket
 from faster_whisper import WhisperModel
 from typing import Optional
 from io import BytesIO
@@ -26,32 +25,39 @@ class ClientState:
         self.end_time = CHUNK_DURATION
         self.started = False
 
-async def handle_client(websocket: WebSocketServerProtocol):
+async def handle_client(websocket: WebSocket):
     state = ClientState()
 
-    try:
-        async for message in websocket:
-            if isinstance(message, str):
-                data = json.loads(message)
-                if data.get("type") == "start":
-                    state.guest_id = data.get("guestId")
-                    state.meeting_id = data.get("meetingId")
-                    state.started = True
-                    continue
-            elif isinstance(message, bytes) and state.started:
-                state.audio_buffer.write(message)
+    while True:
+        try:
+            message = await websocket.receive()
 
-                # Wait for CHUNK_DURATION worth of audio (trigger after delay)
+            # Handle text-based start message
+            if "text" in message:
+                try:
+                    data = json.loads(message["text"])
+                    if data.get("type") == "start":
+                        state.guest_id = data.get("guestId")
+                        state.meeting_id = data.get("meetingId")
+                        state.started = True
+                        continue
+                except json.JSONDecodeError:
+                    continue  # Ignore invalid JSON
+
+            # Handle binary audio stream
+            elif "bytes" in message and state.started:
+                state.audio_buffer.write(message["bytes"])
+
+                # Wait for buffer duration (simulate collection time)
                 await asyncio.sleep(CHUNK_DURATION)
 
-                # Transcribe current audio chunk
+                # Transcribe the audio chunk
                 state.audio_buffer.seek(0)
                 segments, _ = model.transcribe(state.audio_buffer, language="en")
-
-                # Join all segment texts
                 full_text = " ".join([seg.text for seg in segments])
 
-                await websocket.send(json.dumps({
+                # Send transcript back
+                await websocket.send_text(json.dumps({
                     "type": "transcription",
                     "text": full_text,
                     "start": state.start_time,
@@ -60,22 +66,11 @@ async def handle_client(websocket: WebSocketServerProtocol):
                     "meetingId": state.meeting_id
                 }))
 
-                # Prepare for next chunk
+                # Advance time window & reset buffer
                 state.start_time += CHUNK_DURATION
                 state.end_time += CHUNK_DURATION
-                state.audio_buffer = BytesIO()  # clear buffer
+                state.audio_buffer = BytesIO()
 
-    except websockets.exceptions.ConnectionClosed:
-        print("Client disconnected")
-
-# Entry point to start the server
-async def main():
-    host = os.getenv("WS_HOST", "0.0.0.0")
-    port = int(os.getenv("WS_PORT", "8001"))
-
-    async with websockets.serve(handle_client, host, port):
-        print(f"Whisper WebSocket server listening on {host}:{port}")
-        await asyncio.Future()  # run forever
-
-if __name__ == "__main__":
-    asyncio.run(main())
+        except Exception as e:
+            print(f"WebSocket connection error: {e}")
+            break
