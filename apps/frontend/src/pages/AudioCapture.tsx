@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Mic, MicOff, Volume2, Activity, Pause, Play } from 'lucide-react';
 import DashboardLayout from '../components/DashboardLayout';

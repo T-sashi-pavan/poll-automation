@@ -90,7 +90,7 @@ const CreateManualPoll = () => {
     }
 
     // Validate options for Opinion
-    if (pollData.type === "opinion") {
+    if (pollData.types === "opinion") {
       const filledOptions = pollData.options.filter((opt) => opt.text.trim())
       if (filledOptions.length < 2) {
         newErrors.options = "At least 2 options are required for opinion poll"
@@ -109,7 +109,7 @@ const CreateManualPoll = () => {
     }
 
     // Require correct answer for MCQ and True/False
-    if ((pollData.type === "mcq" || pollData.type === "truefalse")) {
+    if ((pollData.types === "mcq" || pollData.types === "truefalse")) {
       if (!pollData.correctAnswer || !pollData.options.some(opt => opt.text.trim() === pollData.correctAnswer?.trim())) {
         newErrors.options = "Please enter the correct answer exactly as one of the options above before creating the poll"
       }
@@ -378,7 +378,7 @@ const CreateManualPoll = () => {
                                       value={option.text}
                                       onChange={e => {
                                         updateOption(option.id, e.target.value)
-                                        if (errors.options && pollData.type === "mcq") {
+                                        if (errors.options && pollData.types === "mcq") {
                                           const filledOptions = pollData.options.map(opt => opt.id === option.id ? e.target.value : opt.text).filter(text => text.trim())
                                           const texts = filledOptions.map(text => text.trim().toLowerCase())
                                           const uniqueTexts = new Set(texts)
