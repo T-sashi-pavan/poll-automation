@@ -74,7 +74,7 @@ const AIControlPanel: React.FC<AIControlPanelProps> = ({ isOpen, onToggle, showF
             try {
               const res = await fetch("http://localhost:5001/transcripts");
               const json = await res.json();
-              console.log("Transcript:", json.text);
+              // console.log("Transcript:", json.text);
               await fetch("http://localhost:5001/generate", { method: "POST" });
               console.log("Questions generated");
             } catch (err) {
