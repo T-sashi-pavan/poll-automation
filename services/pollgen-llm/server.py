@@ -107,7 +107,7 @@ async def rotate_transcripts():
     global current_index, transcript_data
 
     while True:
-        await asyncio.sleep(180)  # Rotate every 3 minutes
+        await asyncio.sleep(80)  # Rotate every 3 minutes
 
         if not JSON_FILES:
             continue
@@ -157,7 +157,7 @@ def generate_from_transcript():
 
     generator = {
         "gemini": generate_questions_with_gemini,
-        "llama": generate_questions_with_local_llm
+        "ollama": generate_questions_with_local_llm
     }.get(current_settings.get("source"))
 
     if not generator:
