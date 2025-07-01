@@ -78,6 +78,10 @@ def save_settings(settings: Settings):
 def get_settings():
     return current_settings or {"message": "No settings found"}
 
+@app.post("/save_manual_poll")
+async def save_poll(data: PollData):
+    result = manual_collection.insert_one(data.dict())
+    return {"message": "Poll saved", "id": str(result.inserted_id)}
 
 #Transcript Endpoint
 @app.get("/transcripts")
