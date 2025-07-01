@@ -16,7 +16,7 @@ collection = db.pollquestions
 
 # Prompt Template
 TEMPLATE = """
-Based STRICTLY on the educational content provided below, generate {num_questions} high-quality, challenging, and well-structured {difficulty} {type} questions.
+Based STRICTLY on the educational content provided below, generate {num_questions} high-quality, challenging, and well-structured {difficulty} {types} questions.
 
 CONTEXT (Instructor's explanation):
 {context}
@@ -50,11 +50,12 @@ IMPORTANT:
 
 def generate_questions_with_gemini(transcript, settings):
     model = genai.GenerativeModel("gemini-2.0-flash")
+    print(settings)
     prompt = TEMPLATE.format(
         context=transcript,
-        num_questions=settings["numQuestions"],
-        difficulty=settings["difficulty"],
-        type=settings["type"]
+        num_questions=settings["quantity"],
+        difficulty="medium",
+        types=settings["types"]
     )
     response = model.generate_content(prompt)
     text = response.text.strip()
@@ -65,7 +66,7 @@ def generate_questions_with_gemini(transcript, settings):
         questions = json.loads(text[json_start:json_end])
         enriched = [{
             **q,
-            "meeting_id": settings["meeting_id"],
+            # "meeting_id": settings["meeting_id"],
             "created_at": datetime.utcnow(),
             "is_active": True,
             "is_approved": False

@@ -54,7 +54,7 @@ def generate_questions_llama_chain(settings: dict):
 
     return chain.invoke({
         "combined_context": combined_context,
-        "num_questions": settings["numQuestions"],
-        "question_type": settings["type"],
-        "difficulty": settings["difficulty"]
+        "num_questions": settings["quantity"],
+        "question_type": settings["types"],
+        "difficulty": "medium"
     })
