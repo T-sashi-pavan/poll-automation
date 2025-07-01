@@ -6,10 +6,18 @@ let gainNode: GainNode | null = null;
 /**
  * Returns a list of available audio input devices (microphones).
  */
-export async function getMicrophones(): Promise<MediaDeviceInfo[]> {
-  const devices = await navigator.mediaDevices.enumerateDevices();
-  return devices.filter((d) => d.kind === 'audioinput');
-}
+export const getMicrophones = async (): Promise<MediaDeviceInfo[]> => {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    stream.getTracks().forEach((track) => track.stop()); // Stop immediately
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    return devices.filter((d) => d.kind === 'audioinput');
+  } catch (error) {
+    console.error("Error accessing microphones", error);
+    return [];
+  }
+};
+
 
 /**
  * Selects a microphone by deviceId and updates the current stream and track.
@@ -36,6 +44,13 @@ export async function selectMicrophone(deviceId: string): Promise<MediaStream | 
   source.connect(gainNode).connect(audioContext.destination);
 
   return stream;
+}
+
+/**
+ * Returns the current selected microphone stream, if any.
+ */
+export function getSelectedMicStream(): MediaStream | null {
+  return currentStream;
 }
 
 /**

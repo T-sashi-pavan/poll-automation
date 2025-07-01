@@ -1,10 +1,10 @@
 import axios from 'axios';
 import dotenv from 'dotenv';
-import { ServerToClientMessage } from 'shared/types/websocket';
+import { ServerToClientMessage } from '@poll-automation/types';
 import {
   TranscriptChunk,
   TranscriptSegment
-} from 'shared/types/transcript';
+} from '@poll-automation/types';
 
 dotenv.config();
 

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { TranscriptionResult } from 'shared/types/websocket';
+import type { TranscriptionResult } from '@poll-automation/types';
 
 interface LiveTranscriptFeedProps {
   backendWsUrl: string;
@@ -15,27 +15,22 @@ const LiveTranscriptFeed: React.FC<LiveTranscriptFeedProps> = ({ backendWsUrl })
 
   useEffect(() => {
     const socket = new WebSocket(backendWsUrl);
+
     socket.onmessage = (event) => {
       try {
         const data: TranscriptionResult = JSON.parse(event.data);
+
         if (data.type === 'transcription') {
           setTranscripts((prev) => {
             const updated = [...prev];
             const index = updated.findIndex((g) => g.guestId === data.guestId);
 
-            const entry = {
-              start: data.start,
-              end: data.end,
-              text: data.text
-            };
+            const entry = { start: data.start, end: data.end, text: data.text };
 
             if (index !== -1) {
               updated[index].entries.push(entry);
             } else {
-              updated.push({
-                guestId: data.guestId,
-                entries: [entry]
-              });
+              updated.push({ guestId: data.guestId, entries: [entry] });
             }
 
             return updated;

@@ -11,7 +11,6 @@ import transcriptsRouter from './web/routes/transcripts';
 import { connectDB } from './web/config/dbconnect';
 
 dotenv.config();
-
 connectDB();
 
 const app = express();
@@ -30,7 +29,6 @@ app.get('/', (_req, res) => {
   res.send('PollGen Backend is running.');
 });
 
-// ✅ Hook up WebSocket server here
 setupWebSocketServer(server);
 
 server.listen(port, () => {

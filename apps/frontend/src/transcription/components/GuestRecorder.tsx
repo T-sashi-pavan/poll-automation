@@ -1,16 +1,16 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { StartMessage } from 'shared/types/websocket';
+import type { StartMessage } from '@poll-automation/types';
 import {
   getSelectedMicStream,
-  getAvailableMics,
-  selectMicDevice
+  getMicrophones,
+  selectMicrophone
 } from '../utils/micManager';
 
 interface GuestRecorderProps {
   guestId: string;
   meetingId: string;
   backendWsUrl: string;
-  hostBroadcastSocket: WebSocket; // should be passed from outer context
+  hostBroadcastSocket: WebSocket;
 }
 
 const GuestRecorder: React.FC<GuestRecorderProps> = ({
@@ -26,7 +26,7 @@ const GuestRecorder: React.FC<GuestRecorderProps> = ({
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
 
   useEffect(() => {
-    getAvailableMics().then(setDevices);
+    getMicrophones().then(setDevices);
   }, []);
 
   useEffect(() => {
@@ -48,7 +48,13 @@ const GuestRecorder: React.FC<GuestRecorderProps> = ({
   }, [hostBroadcastSocket, selectedDeviceId]);
 
   const handleStartStreaming = async () => {
-    const stream = await getSelectedMicStream(selectedDeviceId);
+    if (!selectedDeviceId) {
+      console.warn('No microphone selected');
+      return;
+    }
+
+    await selectMicrophone(selectedDeviceId);
+    const stream = getSelectedMicStream();
     if (!stream) return;
 
     const ws = new WebSocket(backendWsUrl);
@@ -95,7 +101,7 @@ const GuestRecorder: React.FC<GuestRecorderProps> = ({
         onChange={(e) => {
           const id = e.target.value;
           setSelectedDeviceId(id);
-          selectMicDevice(id);
+          selectMicrophone(id); // optional pre-activation
         }}
       >
         {devices.map((device) => (

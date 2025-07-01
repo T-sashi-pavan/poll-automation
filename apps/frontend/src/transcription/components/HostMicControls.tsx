@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { StartMessage } from 'shared/types/websocket';
+import type { StartMessage } from '@poll-automation/types';
 import { getSelectedMicStream } from '../utils/micManager';
 
 interface HostMicControlsProps {
@@ -42,7 +42,7 @@ const HostMicControls: React.FC<HostMicControlsProps> = ({ meetingId, backendWsU
         }
       };
 
-      recorder.start(1000); // collect data every 1s
+      recorder.start(1000);
       setIsStreaming(true);
     };
 
