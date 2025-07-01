@@ -5,7 +5,7 @@ dotenv.config();
 
 export const config = {
   port: process.env.PORT || 4000,
-  mongoUri: process.env.MONGO_URI || '',
+  mongoUri: process.env.MONGO_URI || 'mongodb+srv://devuser1:test1234@cluster0.g6xtlxf.mongodb.net/auth_db?retryWrites=true&w=majority&appName=Cluster0',
 };
 
 export const connectDB = async () => {
