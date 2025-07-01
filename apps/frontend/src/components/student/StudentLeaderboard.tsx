@@ -3,7 +3,7 @@
 import type React from "react"
 import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Trophy, Medal, TrendingUp, TrendingDown, Crown, Zap, Target, Clock, Users, Star, Filter } from "lucide-react"
+import { Trophy, Medal, TrendingUp, TrendingDown, Crown, Zap, Target, Clock, Users, Star } from "lucide-react"
 import { useAuth } from "../../contexts/AuthContext"
 import GlassCard from "../GlassCard"
 
@@ -233,15 +233,6 @@ const StudentLeaderboard: React.FC = () => {
               </button>
             ))}
           </div>
-
-          {/* Stats Toggle */}
-          <button
-            onClick={() => setShowStats(!showStats)}
-            className="flex items-center space-x-2 px-4 py-2 bg-white/5 hover:bg-white/10 rounded-xl transition-all duration-200 text-gray-400 hover:text-white"
-          >
-            <Filter className="w-4 h-4" />
-            <span className="text-sm">Stats</span>
-          </button>
         </div>
       </div>
 

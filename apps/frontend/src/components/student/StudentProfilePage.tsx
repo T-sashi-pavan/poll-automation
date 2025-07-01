@@ -296,152 +296,11 @@ const StudentProfilePage = () => {
     </div>
   )
 
-  const renderSettings = () => (
-    <div className="space-y-6">
-      {isEditing ? (
-        <GlassCard className="p-6">
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="text-xl font-bold text-white flex items-center gap-2">
-              <Edit3 className="w-6 h-6" />
-              Edit Profile
-            </h3>
-            <div className="flex gap-2">
-              <button
-                onClick={handleSave}
-                className="bg-gradient-to-r from-green-500 to-teal-500 hover:from-green-600 hover:to-teal-600 px-4 py-2 rounded-lg text-white font-medium transition-all duration-200 flex items-center gap-2"
-              >
-                <Save className="w-4 h-4" />
-                Save
-              </button>
-              <button
-                onClick={() => setIsEditing(false)}
-                className="bg-white/10 hover:bg-white/20 px-4 py-2 rounded-lg text-white font-medium transition-all duration-200 flex items-center gap-2"
-              >
-                <X className="w-4 h-4" />
-                Cancel
-              </button>
-            </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-white font-medium mb-2">Full Name</label>
-              <input
-                type="text"
-                value={profileData.name}
-                onChange={(e) => setProfileData({ ...profileData, name: e.target.value })}
-                className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500"
-              />
-            </div>
-            <div>
-              <label className="block text-white font-medium mb-2">Email</label>
-              <input
-                type="email"
-                value={profileData.email}
-                onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
-                className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500"
-              />
-            </div>
-            <div>
-              <label className="block text-white font-medium mb-2">Phone</label>
-              <input
-                type="tel"
-                value={profileData.phone}
-                onChange={(e) => setProfileData({ ...profileData, phone: e.target.value })}
-                className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500"
-              />
-            </div>
-            <div>
-              <label className="block text-white font-medium mb-2">School</label>
-              <input
-                type="text"
-                value={profileData.school}
-                onChange={(e) => setProfileData({ ...profileData, school: e.target.value })}
-                className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500"
-              />
-            </div>
-            <div>
-              <label className="block text-white font-medium mb-2">Major</label>
-              <input
-                type="text"
-                value={profileData.major}
-                onChange={(e) => setProfileData({ ...profileData, major: e.target.value })}
-                className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500"
-              />
-            </div>
-            <div>
-              <label className="block text-white font-medium mb-2">Location</label>
-              <input
-                type="text"
-                value={profileData.location}
-                onChange={(e) => setProfileData({ ...profileData, location: e.target.value })}
-                className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500"
-              />
-            </div>
-            <div className="md:col-span-2">
-              <label className="block text-white font-medium mb-2">Bio</label>
-              <textarea
-                value={profileData.bio}
-                onChange={(e) => setProfileData({ ...profileData, bio: e.target.value })}
-                rows={3}
-                className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500"
-              />
-            </div>
-          </div>
-        </GlassCard>
-      ) : (
-        <GlassCard className="p-6">
-          <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
-            <Settings className="w-6 h-6" />
-            Account Settings
-          </h3>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between p-4 rounded-lg bg-white/5">
-              <div className="flex items-center gap-3">
-                <Bell className="w-5 h-5 text-gray-400" />
-                <div>
-                  <p className="text-white font-medium">Notifications</p>
-                  <p className="text-gray-400 text-sm">Manage your notification preferences</p>
-                </div>
-              </div>
-              <button className="bg-gradient-to-r from-primary-500 to-secondary-500 hover:from-primary-600 hover:to-secondary-600 px-4 py-2 rounded-lg text-white text-sm transition-all duration-200">
-                Configure
-              </button>
-            </div>
-            <div className="flex items-center justify-between p-4 rounded-lg bg-white/5">
-              <div className="flex items-center gap-3">
-                <Shield className="w-5 h-5 text-gray-400" />
-                <div>
-                  <p className="text-white font-medium">Privacy</p>
-                  <p className="text-gray-400 text-sm">Control your privacy settings</p>
-                </div>
-              </div>
-              <button className="bg-gradient-to-r from-primary-500 to-secondary-500 hover:from-primary-600 hover:to-secondary-600 px-4 py-2 rounded-lg text-white text-sm transition-all duration-200">
-                Manage
-              </button>
-            </div>
-            <div className="flex items-center justify-between p-4 rounded-lg bg-white/5">
-              <div className="flex items-center gap-3">
-                <Palette className="w-5 h-5 text-gray-400" />
-                <div>
-                  <p className="text-white font-medium">Theme</p>
-                  <p className="text-gray-400 text-sm">Customize your appearance</p>
-                </div>
-              </div>
-              <button className="bg-gradient-to-r from-primary-500 to-secondary-500 hover:from-primary-600 hover:to-secondary-600 px-4 py-2 rounded-lg text-white text-sm transition-all duration-200">
-                Change
-              </button>
-            </div>
-          </div>
-        </GlassCard>
-      )}
-    </div>
-  )
 
   const tabs = [
     { id: "overview", label: "Overview", icon: User },
     { id: "achievements", label: "Achievements", icon: Award },
     { id: "activity", label: "Activity", icon: Clock },
-    { id: "settings", label: "Settings", icon: Settings },
   ]
 
   return (
@@ -481,7 +340,6 @@ const StudentProfilePage = () => {
         {activeTab === "overview" && renderOverview()}
         {activeTab === "achievements" && renderAchievements()}
         {activeTab === "activity" && renderActivity()}
-        {activeTab === "settings" && renderSettings()}
       </motion.div>
     </div>
   )
