@@ -7,14 +7,18 @@ from faster_whisper import WhisperModel
 from typing import Optional
 from io import BytesIO
 import sys
+
+# Ensure UTF-8 logging
 sys.stdout.reconfigure(encoding='utf-8')
+print = lambda *args, **kwargs: __import__('builtins').print(*args, **{**kwargs, 'flush': True})
 
+# Load environment configs
 load_dotenv()
-
 CHUNK_DURATION = int(os.getenv("CHUNK_DURATION", "30"))  # seconds
 MODEL_NAME = os.getenv("MODEL", "medium")
 SILENCE_THRESHOLD = int(os.getenv("SILENCE_THRESHOLD", "5000"))  # bytes
 
+# Whisper model initialization
 model = WhisperModel(MODEL_NAME, compute_type="float16")
 
 class ClientState:
@@ -28,31 +32,24 @@ class ClientState:
         self.queue: asyncio.Queue = asyncio.Queue()
 
 async def process_audio(state: ClientState, websocket: WebSocket):
-    print("[Processor] process_audio() started")
-
+    print("🔁 Processor task started")
     while True:
         try:
             audio_chunk = await state.queue.get()
+            print(f"🔊 Binary audio received, length: {len(audio_chunk)} bytes")
 
-            if len(audio_chunk) > 0:
-                state.audio_buffer.write(audio_chunk)
+            state.audio_buffer.write(audio_chunk)
+
+            if state.audio_buffer.getbuffer().nbytes >= SILENCE_THRESHOLD:
                 print(f"📦 [{state.guest_id}] Buffer size: {state.audio_buffer.getbuffer().nbytes} bytes")
+                state.audio_buffer.seek(0)
 
-            current_size = state.audio_buffer.getbuffer().nbytes
-            if current_size < SILENCE_THRESHOLD:
-                continue  # Wait for more data
+                print(f"🎧 [{state.guest_id}] Transcribing {state.audio_buffer.getbuffer().nbytes} bytes (WAV)")
+                segments, _ = model.transcribe(BytesIO(state.audio_buffer.getvalue()), language="en")
 
-            # Sleep briefly to collect any trailing bytes (optional)
-            await asyncio.sleep(0.5)
-
-            state.audio_buffer.seek(0)
-            print(f"🎧 [{state.guest_id}] Transcribing {current_size} bytes")
-
-            segments, _ = model.transcribe(state.audio_buffer, language="en")
-            full_text = " ".join([seg.text for seg in segments]).strip()
-
-            if full_text:
+                full_text = " ".join([seg.text for seg in segments])
                 print(f"📝 [{state.guest_id}] Transcription: {full_text}")
+
                 await websocket.send_text(json.dumps({
                     "type": "transcription",
                     "text": full_text,
@@ -62,15 +59,14 @@ async def process_audio(state: ClientState, websocket: WebSocket):
                     "meetingId": state.meeting_id
                 }))
 
-            # Update window
-            state.start_time += CHUNK_DURATION
-            state.end_time += CHUNK_DURATION
-            state.audio_buffer = BytesIO()
+                state.audio_buffer = BytesIO()
+                state.start_time += CHUNK_DURATION
+                state.end_time += CHUNK_DURATION
 
         except Exception as e:
             print(f"💥 [{state.guest_id}] Error during processing: {e}")
-            break
-
+            state.audio_buffer = BytesIO()
+            continue
 
 async def handle_client(websocket: WebSocket):
     print("⚡ handle_client() triggered")
@@ -82,11 +78,6 @@ async def handle_client(websocket: WebSocket):
 
         while True:
             message = await websocket.receive()
-            if "text" in message:
-                print("📝 Received text message")
-            elif "bytes" in message:
-                print(f"🔊 Binary audio received, length: {len(message['bytes'])} bytes")
-
 
             if "text" in message:
                 print("📝 Received text message")
@@ -121,8 +112,8 @@ async def handle_client(websocket: WebSocket):
     finally:
         try:
             if websocket.application_state.value != 3:
-                await websocket.close()
+                if not websocket.client_state.name == "DISCONNECTED":
+                    await websocket.close()
                 print(f"🔒 [{state.guest_id}] WebSocket closed")
         except RuntimeError as e:
             print(f"❗[{state.guest_id}] Close error: {e}")
-

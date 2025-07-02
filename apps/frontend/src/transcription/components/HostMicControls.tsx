@@ -1,6 +1,7 @@
 import React, { useRef, useState } from 'react';
 import type { StartMessage } from '@poll-automation/types';
 import { getSelectedMicStream } from '../utils/micManager';
+import { encodeWAV } from '../utils/wavEncoder';
 
 interface HostMicControlsProps {
   meetingId: string;
@@ -10,10 +11,11 @@ interface HostMicControlsProps {
 const HostMicControls: React.FC<HostMicControlsProps> = ({ meetingId, backendWsUrl }) => {
   const [isStreaming, setIsStreaming] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const processorRef = useRef<ScriptProcessorNode | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
 
   const startStreaming = async () => {
-    const stream = await getSelectedMicStream();
+    const stream = getSelectedMicStream();
     if (!stream) {
       console.error('No microphone stream available.');
       return;
@@ -31,18 +33,24 @@ const HostMicControls: React.FC<HostMicControlsProps> = ({ meetingId, backendWsU
       };
       ws.send(JSON.stringify(startMessage));
 
-      const recorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
-      mediaRecorderRef.current = recorder;
+      const audioContext = new AudioContext({ sampleRate: 16000 });
+      audioContextRef.current = audioContext;
+      const source = audioContext.createMediaStreamSource(stream);
 
-      recorder.ondataavailable = (event) => {
-        if (event.data.size > 0 && ws.readyState === WebSocket.OPEN) {
-          event.data.arrayBuffer().then((buffer) => {
-            ws.send(buffer);
-          });
+      const processor = audioContext.createScriptProcessor(4096, 1, 1);
+      processorRef.current = processor;
+
+      source.connect(processor);
+      processor.connect(audioContext.destination);
+
+      processor.onaudioprocess = (e) => {
+        const samples = e.inputBuffer.getChannelData(0);
+        const wavBuffer = encodeWAV(samples, 16000);
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send(wavBuffer);
         }
       };
 
-      recorder.start(1000);
       setIsStreaming(true);
     };
 
@@ -56,14 +64,9 @@ const HostMicControls: React.FC<HostMicControlsProps> = ({ meetingId, backendWsU
   };
 
   const stopStreaming = () => {
-    if (mediaRecorderRef.current?.state === 'recording') {
-      mediaRecorderRef.current.stop();
-    }
-
-    if (wsRef.current?.readyState === WebSocket.OPEN) {
-      wsRef.current.close();
-    }
-
+    processorRef.current?.disconnect();
+    audioContextRef.current?.close();
+    wsRef.current?.close();
     setIsStreaming(false);
   };
 

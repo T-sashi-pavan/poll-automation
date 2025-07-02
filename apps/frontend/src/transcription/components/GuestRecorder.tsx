@@ -5,6 +5,7 @@ import {
   getMicrophones,
   selectMicrophone
 } from '../utils/micManager';
+import { encodeWAV } from '../utils/wavEncoder';
 
 interface GuestRecorderProps {
   guestId: string;
@@ -23,7 +24,10 @@ const GuestRecorder: React.FC<GuestRecorderProps> = ({
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
   const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const scriptNodeRef = useRef<ScriptProcessorNode | null>(null);
+  const audioBufferRef = useRef<Float32Array[]>([]);
+  const chunkIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     getMicrophones().then((mics) => {
@@ -80,21 +84,33 @@ const GuestRecorder: React.FC<GuestRecorderProps> = ({
       ws.send(JSON.stringify(startMessage));
       console.log('[GuestRecorder] Sent start message:', startMessage);
 
-      const recorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
-      mediaRecorderRef.current = recorder;
+      const audioContext = new AudioContext({ sampleRate: 16000 });
+      audioContextRef.current = audioContext;
 
-      recorder.ondataavailable = (event) => {
-        if (event.data.size > 0 && ws.readyState === WebSocket.OPEN) {
-          event.data.arrayBuffer().then((buffer) => {
-            ws.send(buffer);
-            console.log('[GuestRecorder] Sent buffer of size', buffer.byteLength);
-          });
-        }
+      const source = audioContext.createMediaStreamSource(stream);
+      const processor = audioContext.createScriptProcessor(4096, 1, 1);
+      scriptNodeRef.current = processor;
+
+      processor.onaudioprocess = (e) => {
+        const input = e.inputBuffer.getChannelData(0);
+        audioBufferRef.current.push(new Float32Array(input));
       };
 
-      recorder.start(3000);
+      source.connect(processor);
+      processor.connect(audioContext.destination);
+
+      // flush every 3s
+      chunkIntervalRef.current = setInterval(() => {
+        const allSamples = Float32Array.from(audioBufferRef.current.flat());
+        if (allSamples.length > 0) {
+          const wavBuffer = encodeWAV(allSamples, 16000);
+          ws.send(wavBuffer);
+          console.log('[GuestRecorder] Sent chunk', wavBuffer.byteLength);
+          audioBufferRef.current = [];
+        }
+      }, 3000);
+
       setIsStreaming(true);
-      console.log('[GuestRecorder] MediaRecorder started');
     };
 
     ws.onerror = (err) => {
@@ -103,8 +119,27 @@ const GuestRecorder: React.FC<GuestRecorderProps> = ({
 
     ws.onclose = () => {
       console.log('[GuestRecorder] WebSocket closed');
-      setIsStreaming(false);
+      stopStreaming();
     };
+  };
+
+  const stopStreaming = () => {
+    console.log('[GuestRecorder] Stopping...');
+    if (scriptNodeRef.current) {
+      scriptNodeRef.current.disconnect();
+    }
+    if (audioContextRef.current) {
+      audioContextRef.current.close();
+    }
+    if (chunkIntervalRef.current) {
+      clearInterval(chunkIntervalRef.current);
+    }
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      wsRef.current.close();
+    }
+
+    audioBufferRef.current = [];
+    setIsStreaming(false);
   };
 
   return (
@@ -124,6 +159,10 @@ const GuestRecorder: React.FC<GuestRecorderProps> = ({
           </option>
         ))}
       </select>
+
+      <button onClick={stopStreaming} disabled={!isStreaming}>
+        Stop Streaming
+      </button>
 
       {isStreaming && <p>Recording in progress...</p>}
     </div>

@@ -6,125 +6,130 @@ import GlassCard from '../components/GlassCard';
 import GuestLinkGenerator from '../components/host/GuestLinkGenerator';
 import { Toaster } from 'react-hot-toast';
 import { getMicrophones } from '../transcription/utils/micManager';
+import { encodeWAV } from '../transcription/utils/wavEncoder';
 
 const AudioCapture = () => {
   const [isRecording, setIsRecording] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [transcription, setTranscription] = useState('');
   const [selectedMic, setSelectedMic] = useState(() => localStorage.getItem('selectedMic') || 'default');
-  const [waveformData, setWaveformData] = useState<number[]>(Array(50).fill(0));
-  const [downloaded, setDownloaded] = useState(false);
-  const [socket, setSocket] = useState<WebSocket | null>(null);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const [micDevices, setMicDevices] = useState<{ id: string; name: string }[]>([]);
+  const [downloaded, setDownloaded] = useState(false);
+  const [waveformData, setWaveformData] = useState<number[]>(Array(50).fill(0));
+
+  const socketRef = useRef<WebSocket | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const scriptNodeRef = useRef<ScriptProcessorNode | null>(null);
+  const audioBufferRef = useRef<Float32Array[]>([]);
+  const pausedRef = useRef<boolean>(false);
 
   useEffect(() => {
     const fetchMicrophones = async () => {
-      try {
-        const devices = await getMicrophones();
-        const formatted = devices.map((device) => ({
-          id: device.deviceId,
-          name: device.label || `Microphone (${device.deviceId.slice(0, 5)})`,
-        }));
-        setMicDevices(formatted);
+      const devices = await getMicrophones();
+      const formatted = devices.map((device) => ({
+        id: device.deviceId,
+        name: device.label || `Microphone (${device.deviceId.slice(0, 5)})`
+      }));
+      setMicDevices(formatted);
 
-        if (!formatted.some(d => d.id === selectedMic)) {
-          setSelectedMic('default');
-        }
-      } catch (err) {
-        console.error("Failed to fetch microphones", err);
+      if (!formatted.some(d => d.id === selectedMic)) {
+        setSelectedMic('default');
       }
     };
 
     fetchMicrophones();
   }, []);
 
-  const toggleRecording = async () => {
-    if (isRecording) {
-      console.log("🛑 Stopping recording");
-      setIsRecording(false);
-      setIsPaused(false);
-      if (mediaRecorderRef.current?.state === "recording") mediaRecorderRef.current.stop();
-      socket?.close();
-      setSocket(null);
-      return;
-    }
-
+  const startRecording = async () => {
     try {
-      console.log("🎙️ Requesting microphone access...");
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: selectedMic === 'default' ? true : { deviceId: { exact: selectedMic } }
       });
+
+      const audioContext = new AudioContext({ sampleRate: 16000 });
+      const source = audioContext.createMediaStreamSource(stream);
+      const processor = audioContext.createScriptProcessor(4096, 1, 1);
+
+      processor.onaudioprocess = (e) => {
+        if (!pausedRef.current) {
+          const input = e.inputBuffer.getChannelData(0);
+          audioBufferRef.current.push(new Float32Array(input));
+
+          // Visualize waveform
+          const avg = input.reduce((a, b) => a + Math.abs(b), 0) / input.length;
+          const newWave = waveformData.map(() => Math.random() * avg * 100);
+          setWaveformData(newWave);
+        }
+      };
+
+      source.connect(processor);
+      processor.connect(audioContext.destination);
 
       const ws = new WebSocket(import.meta.env.VITE_BACKEND_WS_URL as string);
       ws.binaryType = "arraybuffer";
 
       ws.onopen = () => {
-        console.log("✅ WebSocket connection opened");
         ws.send(JSON.stringify({
           type: "start",
           guestId: "host",
-          meetingId: "yourRoomCodeHere",
+          meetingId: "yourRoomCodeHere"
         }));
 
-        const recorder = new MediaRecorder(stream, { mimeType: "audio/webm" });
-        mediaRecorderRef.current = recorder;
+        setInterval(() => {
+          if (audioBufferRef.current.length === 0) return;
 
-        recorder.ondataavailable = (event) => {
-          if (event.data.size > 0 && ws.readyState === WebSocket.OPEN) {
-            event.data.arrayBuffer().then(buffer => {
-              console.debug("📤 Sending audio chunk:", buffer.byteLength);
-              ws.send(buffer);
-            });
-          }
-        };
-
-        recorder.start(3000); // 3 seconds chunks
-        setIsRecording(true);
-        setSocket(ws);
+          const merged = mergeBuffers(audioBufferRef.current);
+          const wav = encodeWAV(merged, 16000);
+          ws.send(wav);
+          audioBufferRef.current = [];
+        }, 3000);
       };
 
       ws.onmessage = (event) => {
-        console.debug("📩 Message from backend:", event.data);
         try {
           const data = JSON.parse(event.data);
           if (data.type === "transcription") {
-            if (typeof data.text === "string") {
-              setTranscription(prev => prev + " " + data.text);
-            } else {
-              console.warn("⚠️ Transcription 'text' is not a string:", data.text);
-            }
+            setTranscription(prev => prev + ' ' + data.text);
           }
-        } catch (err) {
-          console.error("❌ JSON parsing failed:", err);
+        } catch (e) {
+          console.error("Invalid JSON from backend:", event.data);
         }
       };
 
-      ws.onerror = (err) => {
-        console.error("❌ WebSocket error:", err);
-      };
-
-      ws.onclose = (event) => {
-        console.warn(`🔌 WebSocket closed (code: ${event.code})`);
-        setIsRecording(false);
-        setIsPaused(false);
-      };
+      socketRef.current = ws;
+      audioContextRef.current = audioContext;
+      scriptNodeRef.current = processor;
+      setIsRecording(true);
     } catch (err) {
-      console.error("Microphone access error", err);
+      console.error("🎙️ Mic access error", err);
+    }
+  };
+
+  const stopRecording = () => {
+    if (audioContextRef.current) {
+      audioContextRef.current.close();
+      audioContextRef.current = null;
+    }
+    if (socketRef.current?.readyState === WebSocket.OPEN) {
+      socketRef.current.close();
+    }
+    audioBufferRef.current = [];
+    setIsRecording(false);
+    setIsPaused(false);
+  };
+
+  const toggleRecording = () => {
+    if (isRecording) {
+      stopRecording();
+    } else {
+      startRecording();
     }
   };
 
   const togglePause = () => {
-    setIsPaused((prev) => {
-      const newPaused = !prev;
-      const recorder = mediaRecorderRef.current;
-
-      if (recorder) {
-        if (newPaused && recorder.state === "recording") recorder.pause();
-        else if (!newPaused && recorder.state === "paused") recorder.resume();
-      }
-
-      return newPaused;
+    setIsPaused(prev => {
+      pausedRef.current = !prev;
+      return !prev;
     });
   };
 
@@ -133,34 +138,27 @@ const AudioCapture = () => {
   };
 
   const downloadTranscript = () => {
-    if (!transcription) return;
-
-    const element = document.createElement("a");
-    const file = new Blob([transcription], { type: "text/plain" });
-    element.href = URL.createObjectURL(file);
-    element.download = `transcript-${Date.now()}.txt`;
-    document.body.appendChild(element);
-    element.click();
-    document.body.removeChild(element);
+    const blob = new Blob([transcription], { type: 'text/plain' });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `transcript-${Date.now()}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
     setDownloaded(true);
     setTimeout(() => setDownloaded(false), 2000);
   };
 
-  useEffect(() => {
-    if (isRecording && !isPaused) {
-      const interval = setInterval(() => {
-        setWaveformData(prev => {
-          const newData = [...prev];
-          for (let i = 0; i < newData.length; i++) {
-            newData[i] = Math.random() * 100;
-          }
-          return newData;
-        });
-      }, 100);
-      return () => clearInterval(interval);
+  const mergeBuffers = (chunks: Float32Array[]) => {
+    const length = chunks.reduce((acc, cur) => acc + cur.length, 0);
+    const result = new Float32Array(length);
+    let offset = 0;
+    for (let chunk of chunks) {
+      result.set(chunk, offset);
+      offset += chunk.length;
     }
-  }, [isRecording, isPaused]);
-
+    return result;
+  };
   return (
     <DashboardLayout>
       <motion.div
