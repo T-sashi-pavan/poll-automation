@@ -110,6 +110,30 @@ async def handle_client(websocket: WebSocket):
                         print(f"✅ [{state.guest_id}] Session started for meeting {state.meeting_id}")
                         await websocket.send_text(json.dumps({"type": "ack", "message": "Session started"}))
                         continue
+                    if data.get("type") == "stop":
+                        print(f"🛑 [{state.guest_id}] Stop signal received. Flushing buffer...")
+
+                        if state.audio_buffer.getbuffer().nbytes > 0:
+                            state.audio_buffer.seek(0)
+                            segments, _ = model.transcribe(BytesIO(state.audio_buffer.getvalue()), language="en")
+
+                            full_text = " ".join([seg.text for seg in segments])
+                            print(f"📝 [{state.guest_id}] Final Transcription: {full_text}")
+
+                            if not is_hallucinated_text(full_text):
+                                await websocket.send_text(json.dumps({
+                                    "type": "transcription",
+                                    "text": full_text,
+                                    "start": state.start_time,
+                                    "end": state.end_time,
+                                    "guestId": state.guest_id,
+                                    "meetingId": state.meeting_id
+                                }))
+
+                        await websocket.send_text(json.dumps({ "type": "done" }))
+                        print(f"✅ [{state.guest_id}] Done sent. Closing soon.")
+                        break
+
                 except json.JSONDecodeError:
                     print("❌ Invalid JSON message")
                     continue
