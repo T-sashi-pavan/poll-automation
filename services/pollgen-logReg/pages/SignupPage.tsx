@@ -34,7 +34,7 @@ const SignupPage: React.FC = () => {
     }
     const loadingToast = toast.loading('Creating account...');
     try {
-      await axios.post('http://localhost:5000/api/auth/signup', formData);
+      await axios.post('http://localhost:5003/api/auth/signup', formData);
       toast.success("Account created successfully. Please login.", { id: loadingToast });
       navigate('/login');
     } catch (error: any) {

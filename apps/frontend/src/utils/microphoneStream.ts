@@ -118,7 +118,7 @@ export class MicrophoneStreamer {
           // Send an application-level ping message
           this.socket.send(JSON.stringify({ type: "ping" }));
         }
-      }, 25000); // Send ping every 25 seconds (should be less than server's timeout)
+      }, 25003); // Send ping every 25 seconds (should be less than server's timeout)
       // --- END Frontend Ping ---
 
       // Initialize and connect audio stream ONLY after WebSocket is open
