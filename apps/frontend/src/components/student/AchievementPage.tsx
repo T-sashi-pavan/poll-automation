@@ -360,8 +360,9 @@ const AchievementPage = () => {
           </div>
         </div>
         
-        {/* Filters Row: Category left, Rarity right */}
+        {/* Filters Row: Category left, Rarity right (responsive) */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          
           {/* Category Filter */}
           <div className="flex flex-wrap gap-4">
             {categories.map((category) => (
@@ -380,13 +381,13 @@ const AchievementPage = () => {
               </button>
             ))}
           </div>
-          
-          {/* Rarity Filter */}
-          <div className="sm:ml-auto">
+
+          {/* Rarity Filter - full width on mobile, right on desktop */}
+          <div className="w-full sm:w-auto sm:ml-auto">
             <select
               value={selectedRarity}
               onChange={(e) => setSelectedRarity(e.target.value)}
-              className="bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary-500 min-w-[150px]"
+              className="w-full sm:w-auto bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary-500 min-w-[150px]"
             >
               <option value="all" className="bg-gray-800">All Rarities</option>
               <option value="legendary" className="bg-gray-800">Legendary</option>
