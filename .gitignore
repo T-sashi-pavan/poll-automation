@@ -107,3 +107,6 @@ services/pollgen-llm/chroma_langchain_db
 #repomix files
 /repomix*
 repomix*
+
+#bat files logs
+.installed.flag

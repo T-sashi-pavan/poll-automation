@@ -1,6 +1,11 @@
+from dotenv import load_dotenv
+load_dotenv()
 import pathlib
+import os
 #Reason for adding the home directory: Force the home directory to avoid Path.home() failure in Windows subprocesses used by ChromaDB
-pathlib.Path.home = lambda: pathlib.Path("C:/Users/srimv/") #Add your home directory here
+load_dotenv(dotenv_path="services/pollgen-llm/.env")
+user_home_env = os.getenv("USER_HOME")  
+pathlib.Path.home = lambda: pathlib.Path(user_home_env)
 from fastapi import FastAPI, WebSocket
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
