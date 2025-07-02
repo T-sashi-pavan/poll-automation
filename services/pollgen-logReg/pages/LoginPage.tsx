@@ -16,7 +16,7 @@ const LoginPage: React.FC = () => {
     e.preventDefault();
     const loadingToast = toast.loading('Logging in...');
     try {
-      const { data } = await axios.post('http://localhost:5000/api/auth/login', formData);
+      const { data } = await axios.post('http://localhost:5003/api/auth/login', formData);
       toast.success(`Welcome back, ${data.result.name}!`, { id: loadingToast });
       login(data.result, data.token); // This will handle navigation
     } catch (error: any) {

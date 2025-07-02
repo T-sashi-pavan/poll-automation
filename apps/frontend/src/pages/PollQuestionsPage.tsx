@@ -5,7 +5,7 @@ import type React from "react"
 import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Clock, Users, Trophy, CheckCircle, X, ArrowRight } from "lucide-react"
-import GlassCard from "../GlassCard"
+import GlassCard from "../components/GlassCard"
 
 interface Question {
   id: string
