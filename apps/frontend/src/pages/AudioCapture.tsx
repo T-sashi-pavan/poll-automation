@@ -127,23 +127,31 @@ const AudioCapture = () => {
     }
   };
 
-  const stopRecording = () => {
-    if (audioContextRef.current) {
-      audioContextRef.current.close();
-      audioContextRef.current = null;
-    }
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-    }
-    if (socketRef.current?.readyState === WebSocket.OPEN) {
-      socketRef.current.close();
-    }
-    audioBufferRef.current = [];
-    setIsRecording(false);
-    setIsPaused(false);
-    setVolume(0); 
-  };
+const stopRecording = () => {
+  if (audioContextRef.current) {
+    audioContextRef.current.close();
+    audioContextRef.current = null;
+  }
+  if (scriptNodeRef.current) {
+    try {
+      scriptNodeRef.current.disconnect();
+    } catch (_) {}
+    scriptNodeRef.current = null;
+  }
+  if (intervalRef.current) {
+    clearInterval(intervalRef.current);
+    intervalRef.current = null;
+  }
+  if (socketRef.current?.readyState === WebSocket.OPEN) {
+    socketRef.current.close();
+  }
+  audioBufferRef.current = [];
+  setIsRecording(false);
+  setIsPaused(false);
+  setVolume(0);
+  pausedRef.current = false; // ✅ important to reset
+};
+
 
   const toggleRecording = () => {
     if (isRecording) {
