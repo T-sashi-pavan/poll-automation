@@ -3,7 +3,7 @@ import json
 import asyncio
 from dotenv import load_dotenv
 from fastapi import WebSocket
-from faster_whisper import WhisperModel
+from ..utils.whisper_loader import load_whisper_model
 from typing import Optional
 from io import BytesIO
 import sys
@@ -15,11 +15,10 @@ print = lambda *args, **kwargs: __import__('builtins').print(*args, **{**kwargs,
 # Load environment configs
 load_dotenv()
 CHUNK_DURATION = int(os.getenv("CHUNK_DURATION", "30"))  # seconds
-MODEL_NAME = os.getenv("MODEL", "medium")
 SILENCE_THRESHOLD = int(os.getenv("SILENCE_THRESHOLD", "5000"))  # bytes
 
-# Whisper model initialization
-model = WhisperModel(MODEL_NAME, compute_type="float16")
+# Load Whisper model (with device + compute_type fallback)
+model = load_whisper_model()
 
 class ClientState:
     def __init__(self):
@@ -30,6 +29,20 @@ class ClientState:
         self.end_time = CHUNK_DURATION
         self.started = False
         self.queue: asyncio.Queue = asyncio.Queue()
+
+def is_hallucinated_text(text: str) -> bool:
+    """Filter common hallucinated phrases or empty results."""
+    hallucinated_phrases = [
+        "thanks for watching", "thank you for watching",
+        "subscribe", "click the link", "undefined"
+    ]
+    lower = text.strip().lower()
+    if not lower:
+        return True
+    for phrase in hallucinated_phrases:
+        if phrase in lower:
+            return True
+    return False
 
 async def process_audio(state: ClientState, websocket: WebSocket):
     print("🔁 Processor task started")
@@ -49,6 +62,11 @@ async def process_audio(state: ClientState, websocket: WebSocket):
 
                 full_text = " ".join([seg.text for seg in segments])
                 print(f"📝 [{state.guest_id}] Transcription: {full_text}")
+
+                if is_hallucinated_text(full_text):
+                    print(f"⚠️ [{state.guest_id}] Skipped sending hallucinated/empty transcription.")
+                    state.audio_buffer = BytesIO()
+                    continue
 
                 await websocket.send_text(json.dumps({
                     "type": "transcription",
