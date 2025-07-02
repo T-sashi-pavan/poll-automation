@@ -222,29 +222,24 @@ const AudioCapture = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Recording Controls */}
           <GlassCard className="p-6">
-            <h3 className="text-xl font-bold text-white mb-4">
-              Recording Controls
-            </h3>
-            <div className="space-y-4">
+            <h3 className="text-xl font-bold text-white mb-4">Recording Controls</h3>
+            <div className="space-y-8">
               <div className="flex items-center justify-center">
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={toggleRecording}
-                  className={`w-20 h-20 rounded-full flex items-center justify-center ${
-                    isRecording
-                      ? "bg-red-500 hover:bg-red-600"
-                      : "bg-primary-500 hover:bg-primary-600"
-                  } transition-colors duration-200`}
+                  className={`px-6 py-3 rounded-full text-lg font-semibold shadow-md transition duration-300 ease-in-out
+    ${isRecording
+                      ? 'bg-red-600 text-white hover:bg-red-700 shadow-red-500/30'
+                      : 'bg-green-500 text-white hover:bg-green-600 shadow-green-500/30'
+                    }`}
                 >
-                  {isRecording ? (
-                    <MicOff className="w-8 h-8 text-white" />
-                  ) : (
-                    <Mic className="w-8 h-8 text-white" />
-                  )}
+                  {isRecording ? "STOP" : "START"}
                 </motion.button>
               </div>
 
+              {/* Mic Toggle and Clear Button */}
               <div className="flex items-center justify-center space-x-4">
                 <motion.button
                   whileHover={{ scale: 1.02 }}
@@ -254,9 +249,9 @@ const AudioCapture = () => {
                   className="px-4 py-2 bg-white/10 rounded-lg text-white hover:bg-white/20 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
                 >
                   {isPaused ? (
-                    <Play className="w-4 h-4" />
+                    <MicOff className="w-4 h-4" /> // <-- Changed to MicOff
                   ) : (
-                    <Pause className="w-4 h-4" />
+                    <Mic className="w-4 h-4" />   // <-- Changed to Mic
                   )}
                 </motion.button>
 
@@ -270,7 +265,7 @@ const AudioCapture = () => {
                 </motion.button>
               </div>
             </div>
-          </GlassCard>
+          </GlassCard>
 
           {/* Microphone Settings */}
           <GlassCard className="p-6">
