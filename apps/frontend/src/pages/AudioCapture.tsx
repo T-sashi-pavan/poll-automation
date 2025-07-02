@@ -1,19 +1,23 @@
-import { useState, useEffect, useRef } from 'react';
-import { motion } from 'framer-motion';
-import { Mic, MicOff, Volume2, Activity, Pause, Play } from 'lucide-react';
-import DashboardLayout from '../components/DashboardLayout';
-import GlassCard from '../components/GlassCard';
-import GuestLinkGenerator from '../components/host/GuestLinkGenerator';
-import { Toaster } from 'react-hot-toast';
-import { getMicrophones } from '../transcription/utils/micManager';
-import { encodeWAV } from '../transcription/utils/wavEncoder';
+import { useState, useEffect, useRef } from "react";
+import { motion } from "framer-motion";
+import { Mic, MicOff, Volume2, Activity, Pause, Play } from "lucide-react";
+import DashboardLayout from "../components/DashboardLayout";
+import GlassCard from "../components/GlassCard";
+import GuestLinkGenerator from "../components/host/GuestLinkGenerator";
+import { Toaster } from "react-hot-toast";
+import { getMicrophones } from "../transcription/utils/micManager";
+import { encodeWAV } from "../transcription/utils/wavEncoder";
 
 const AudioCapture = () => {
   const [isRecording, setIsRecording] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
-  const [transcription, setTranscription] = useState('');
-  const [selectedMic, setSelectedMic] = useState(() => localStorage.getItem('selectedMic') || 'default');
-  const [micDevices, setMicDevices] = useState<{ id: string; name: string }[]>([]);
+  const [transcription, setTranscription] = useState("");
+  const [selectedMic, setSelectedMic] = useState(
+    () => localStorage.getItem("selectedMic") || "default"
+  );
+  const [micDevices, setMicDevices] = useState<{ id: string; name: string }[]>(
+    []
+  );
   const [downloaded, setDownloaded] = useState(false);
   const [waveformData, setWaveformData] = useState<number[]>(Array(50).fill(0));
 
@@ -22,18 +26,19 @@ const AudioCapture = () => {
   const scriptNodeRef = useRef<ScriptProcessorNode | null>(null);
   const audioBufferRef = useRef<Float32Array[]>([]);
   const pausedRef = useRef<boolean>(false);
+  const CHUNK_INTERVAL = 10000;
 
   useEffect(() => {
     const fetchMicrophones = async () => {
       const devices = await getMicrophones();
       const formatted = devices.map((device) => ({
         id: device.deviceId,
-        name: device.label || `Microphone (${device.deviceId.slice(0, 5)})`
+        name: device.label || `Microphone (${device.deviceId.slice(0, 5)})`,
       }));
       setMicDevices(formatted);
 
-      if (!formatted.some(d => d.id === selectedMic)) {
-        setSelectedMic('default');
+      if (!formatted.some((d) => d.id === selectedMic)) {
+        setSelectedMic("default");
       }
     };
 
@@ -43,7 +48,13 @@ const AudioCapture = () => {
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        audio: selectedMic === 'default' ? true : { deviceId: { exact: selectedMic } }
+        audio: {
+          deviceId:
+            selectedMic === "default" ? undefined : { exact: selectedMic },
+          echoCancellation: false,
+          noiseSuppression: false,
+          autoGainControl: false,
+        },
       });
 
       const audioContext = new AudioContext({ sampleRate: 16000 });
@@ -69,11 +80,13 @@ const AudioCapture = () => {
       ws.binaryType = "arraybuffer";
 
       ws.onopen = () => {
-        ws.send(JSON.stringify({
-          type: "start",
-          guestId: "host",
-          meetingId: "yourRoomCodeHere"
-        }));
+        ws.send(
+          JSON.stringify({
+            type: "start",
+            guestId: "host",
+            meetingId: "yourRoomCodeHere",
+          })
+        );
 
         setInterval(() => {
           if (audioBufferRef.current.length === 0) return;
@@ -82,14 +95,14 @@ const AudioCapture = () => {
           const wav = encodeWAV(merged, 16000);
           ws.send(wav);
           audioBufferRef.current = [];
-        }, 3000);
+        },CHUNK_INTERVAL);
       };
 
       ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
           if (data.type === "transcription") {
-            setTranscription(prev => prev + ' ' + data.text);
+            setTranscription((prev) => prev + " " + data.text);
           }
         } catch (e) {
           console.error("Invalid JSON from backend:", event.data);
@@ -127,18 +140,18 @@ const AudioCapture = () => {
   };
 
   const togglePause = () => {
-    setIsPaused(prev => {
+    setIsPaused((prev) => {
       pausedRef.current = !prev;
       return !prev;
     });
   };
 
   const clearTranscription = () => {
-    setTranscription('');
+    setTranscription("");
   };
 
   const downloadTranscript = () => {
-    const blob = new Blob([transcription], { type: 'text/plain' });
+    const blob = new Blob([transcription], { type: "text/plain" });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
     link.download = `transcript-${Date.now()}.txt`;
@@ -170,17 +183,24 @@ const AudioCapture = () => {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-white mb-2">Audio Capture</h1>
-            <p className="text-gray-400">Real-time audio recording and transcription</p>
+            <h1 className="text-3xl font-bold text-white mb-2">
+              Audio Capture
+            </h1>
+            <p className="text-gray-400">
+              Real-time audio recording and transcription
+            </p>
           </div>
           <div className="flex items-center space-x-4">
-            <div className={`px-3 py-1 rounded-full text-sm font-medium ${isRecording
-              ? isPaused
-                ? 'bg-yellow-500/20 text-yellow-400'
-                : 'bg-green-500/20 text-green-400'
-              : 'bg-gray-500/20 text-gray-400'
-              }`}>
-              {isRecording ? (isPaused ? 'Paused' : 'Recording') : 'Stopped'}
+            <div
+              className={`px-3 py-1 rounded-full text-sm font-medium ${
+                isRecording
+                  ? isPaused
+                    ? "bg-yellow-500/20 text-yellow-400"
+                    : "bg-green-500/20 text-green-400"
+                  : "bg-gray-500/20 text-gray-400"
+              }`}
+            >
+              {isRecording ? (isPaused ? "Paused" : "Recording") : "Stopped"}
             </div>
           </div>
         </div>
@@ -189,17 +209,20 @@ const AudioCapture = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Recording Controls */}
           <GlassCard className="p-6">
-            <h3 className="text-xl font-bold text-white mb-4">Recording Controls</h3>
+            <h3 className="text-xl font-bold text-white mb-4">
+              Recording Controls
+            </h3>
             <div className="space-y-4">
               <div className="flex items-center justify-center">
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={toggleRecording}
-                  className={`w-20 h-20 rounded-full flex items-center justify-center ${isRecording
-                    ? 'bg-red-500 hover:bg-red-600'
-                    : 'bg-primary-500 hover:bg-primary-600'
-                    } transition-colors duration-200`}
+                  className={`w-20 h-20 rounded-full flex items-center justify-center ${
+                    isRecording
+                      ? "bg-red-500 hover:bg-red-600"
+                      : "bg-primary-500 hover:bg-primary-600"
+                  } transition-colors duration-200`}
                 >
                   {isRecording ? (
                     <MicOff className="w-8 h-8 text-white" />
@@ -238,31 +261,41 @@ const AudioCapture = () => {
 
           {/* Microphone Settings */}
           <GlassCard className="p-6">
-            <h3 className="text-xl font-bold text-white mb-4">Microphone Settings</h3>
+            <h3 className="text-xl font-bold text-white mb-4">
+              Microphone Settings
+            </h3>
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
                   Select Microphone
                 </label>
                 <select
-        value={selectedMic}
-        onChange={(e) => {
-          setSelectedMic(e.target.value);
-          localStorage.setItem('selectedMic', e.target.value);
-        }}
-        className="w-full bg-white/10 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
-      >
-        <option value="default" className="bg-gray-800">Default Microphone</option>
-        {micDevices.length > 0 ? (
-          micDevices.map(device => (
-            <option key={device.id} value={device.id} className="bg-gray-800">
-              {device.name}
-            </option>
-          ))
-        ) : (
-          <option disabled className="bg-gray-800">No microphone devices found</option>
-        )}
-      </select>
+                  value={selectedMic}
+                  onChange={(e) => {
+                    setSelectedMic(e.target.value);
+                    localStorage.setItem("selectedMic", e.target.value);
+                  }}
+                  className="w-full bg-white/10 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+                >
+                  <option value="default" className="bg-gray-800">
+                    Default Microphone
+                  </option>
+                  {micDevices.length > 0 ? (
+                    micDevices.map((device) => (
+                      <option
+                        key={device.id}
+                        value={device.id}
+                        className="bg-gray-800"
+                      >
+                        {device.name}
+                      </option>
+                    ))
+                  ) : (
+                    <option disabled className="bg-gray-800">
+                      No microphone devices found
+                    </option>
+                  )}
+                </select>
               </div>
 
               <div>
@@ -279,7 +312,6 @@ const AudioCapture = () => {
               </div>
             </div>
           </GlassCard>
-
 
           {/* Waveform Visualizer
           <GlassCard className="p-6">
@@ -305,7 +337,9 @@ const AudioCapture = () => {
         {/* Transcription Output */}
         <GlassCard className="p-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-2">
-            <h3 className="text-xl font-bold text-white">Real-time Transcription</h3>
+            <h3 className="text-xl font-bold text-white">
+              Real-time Transcription
+            </h3>
             <div className="flex items-center space-x-2">
               <Activity className="w-4 h-4 text-primary-400" />
               <span className="text-sm text-gray-400">Live</span>
@@ -324,9 +358,8 @@ const AudioCapture = () => {
               <div className="flex items-center justify-center h-full">
                 <p className="text-gray-500 text-center">
                   {isRecording
-                    ? 'Listening for speech...'
-                    : 'Click the microphone to start recording'
-                  }
+                    ? "Listening for speech..."
+                    : "Click the microphone to start recording"}
                 </p>
               </div>
             )}

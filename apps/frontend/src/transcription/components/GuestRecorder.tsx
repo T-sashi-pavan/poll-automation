@@ -6,6 +6,7 @@ import {
   selectMicrophone
 } from '../utils/micManager';
 import { encodeWAV } from '../utils/wavEncoder';
+const CHUNK_INTERVAL = 10000; // 10 seconds
 
 interface GuestRecorderProps {
   guestId: string;
@@ -108,7 +109,7 @@ const GuestRecorder: React.FC<GuestRecorderProps> = ({
           console.log('[GuestRecorder] Sent chunk', wavBuffer.byteLength);
           audioBufferRef.current = [];
         }
-      }, 3000);
+      },CHUNK_INTERVAL);
 
       setIsStreaming(true);
     };
