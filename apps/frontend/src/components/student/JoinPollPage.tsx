@@ -111,7 +111,7 @@ const JoinPollPage: React.FC = () => {
 
       // Call the backend API to get poll details by room code
       const response = await axios.get(
-        `http://localhost:4000/api/room-code/polls/${cleanRoomCode}`
+        `http://localhost:5000/api/room-code/polls/${cleanRoomCode}`
       );
 
       console.log("Poll data received:", response);
