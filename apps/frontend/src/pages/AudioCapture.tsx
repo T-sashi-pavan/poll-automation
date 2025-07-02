@@ -142,6 +142,7 @@ const AudioCapture = () => {
     audioBufferRef.current = [];
     setIsRecording(false);
     setIsPaused(false);
+    setVolume(0); 
   };
 
   const toggleRecording = () => {
