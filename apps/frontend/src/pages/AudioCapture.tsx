@@ -20,13 +20,19 @@ const AudioCapture = () => {
   );
   const [downloaded, setDownloaded] = useState(false);
   const [waveformData, setWaveformData] = useState<number[]>(Array(50).fill(0));
+  const [volume, setVolume] = useState(0); // 👈 Added for live volume tracking
 
   const socketRef = useRef<WebSocket | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const scriptNodeRef = useRef<ScriptProcessorNode | null>(null);
   const audioBufferRef = useRef<Float32Array[]>([]);
   const pausedRef = useRef<boolean>(false);
- const CHUNK_INTERVAL = parseInt(import.meta.env.VITE_CHUNK_INTERVAL || '30000');
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  const CHUNK_INTERVAL = Math.max(
+    1000,
+    parseInt(import.meta.env.VITE_CHUNK_INTERVAL || "30000")
+  );
 
   useEffect(() => {
     const fetchMicrophones = async () => {
@@ -66,8 +72,11 @@ const AudioCapture = () => {
           const input = e.inputBuffer.getChannelData(0);
           audioBufferRef.current.push(new Float32Array(input));
 
-          // Visualize waveform
+          // Live volume tracking
           const avg = input.reduce((a, b) => a + Math.abs(b), 0) / input.length;
+          setVolume(Math.min(100, avg * 1000)); // Adjusted scale
+
+          // Optional: visual waveform bars
           const newWave = waveformData.map(() => Math.random() * avg * 100);
           setWaveformData(newWave);
         }
@@ -88,20 +97,20 @@ const AudioCapture = () => {
           })
         );
 
-        setInterval(() => {
+        intervalRef.current = setInterval(() => {
           if (audioBufferRef.current.length === 0) return;
 
           const merged = mergeBuffers(audioBufferRef.current);
           const wav = encodeWAV(merged, 16000);
           ws.send(wav);
           audioBufferRef.current = [];
-        },CHUNK_INTERVAL);
+        }, CHUNK_INTERVAL);
       };
 
       ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
-          if (data.type === "transcription") {
+          if (data.type === "transcription" && typeof data.text === "string") {
             setTranscription((prev) => prev + " " + data.text);
           }
         } catch (e) {
@@ -118,18 +127,31 @@ const AudioCapture = () => {
     }
   };
 
-  const stopRecording = () => {
-    if (audioContextRef.current) {
-      audioContextRef.current.close();
-      audioContextRef.current = null;
-    }
-    if (socketRef.current?.readyState === WebSocket.OPEN) {
-      socketRef.current.close();
-    }
-    audioBufferRef.current = [];
-    setIsRecording(false);
-    setIsPaused(false);
-  };
+const stopRecording = () => {
+  if (audioContextRef.current) {
+    audioContextRef.current.close();
+    audioContextRef.current = null;
+  }
+  if (scriptNodeRef.current) {
+    try {
+      scriptNodeRef.current.disconnect();
+    } catch (_) {}
+    scriptNodeRef.current = null;
+  }
+  if (intervalRef.current) {
+    clearInterval(intervalRef.current);
+    intervalRef.current = null;
+  }
+  if (socketRef.current?.readyState === WebSocket.OPEN) {
+    socketRef.current.close();
+  }
+  audioBufferRef.current = [];
+  setIsRecording(false);
+  setIsPaused(false);
+  setVolume(0);
+  pausedRef.current = false; // ✅ important to reset
+};
+
 
   const toggleRecording = () => {
     if (isRecording) {
@@ -172,6 +194,7 @@ const AudioCapture = () => {
     }
     return result;
   };
+
   return (
     <DashboardLayout>
       <motion.div
@@ -183,9 +206,7 @@ const AudioCapture = () => {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-white mb-2">
-              Audio Capture
-            </h1>
+            <h1 className="text-3xl font-bold text-white mb-2">Audio Capture</h1>
             <p className="text-gray-400">
               Real-time audio recording and transcription
             </p>
@@ -209,29 +230,24 @@ const AudioCapture = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Recording Controls */}
           <GlassCard className="p-6">
-            <h3 className="text-xl font-bold text-white mb-4">
-              Recording Controls
-            </h3>
-            <div className="space-y-4">
+            <h3 className="text-xl font-bold text-white mb-4">Recording Controls</h3>
+            <div className="space-y-8">
               <div className="flex items-center justify-center">
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={toggleRecording}
-                  className={`w-20 h-20 rounded-full flex items-center justify-center ${
-                    isRecording
-                      ? "bg-red-500 hover:bg-red-600"
-                      : "bg-primary-500 hover:bg-primary-600"
-                  } transition-colors duration-200`}
+                  className={`px-6 py-3 rounded-full text-lg font-semibold shadow-md transition duration-300 ease-in-out
+    ${isRecording
+                      ? 'bg-red-600 text-white hover:bg-red-700 shadow-red-500/30'
+                      : 'bg-green-500 text-white hover:bg-green-600 shadow-green-500/30'
+                    }`}
                 >
-                  {isRecording ? (
-                    <MicOff className="w-8 h-8 text-white" />
-                  ) : (
-                    <Mic className="w-8 h-8 text-white" />
-                  )}
+                  {isRecording ? "STOP" : "START"}
                 </motion.button>
               </div>
 
+              {/* Mic Toggle and Clear Button */}
               <div className="flex items-center justify-center space-x-4">
                 <motion.button
                   whileHover={{ scale: 1.02 }}
@@ -241,9 +257,9 @@ const AudioCapture = () => {
                   className="px-4 py-2 bg-white/10 rounded-lg text-white hover:bg-white/20 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
                 >
                   {isPaused ? (
-                    <Play className="w-4 h-4" />
+                    <MicOff className="w-4 h-4" /> // <-- Changed to MicOff
                   ) : (
-                    <Pause className="w-4 h-4" />
+                    <Mic className="w-4 h-4" />   // <-- Changed to Mic
                   )}
                 </motion.button>
 
@@ -257,7 +273,7 @@ const AudioCapture = () => {
                 </motion.button>
               </div>
             </div>
-          </GlassCard>
+          </GlassCard>
 
           {/* Microphone Settings */}
           <GlassCard className="p-6">
@@ -304,37 +320,26 @@ const AudioCapture = () => {
                 </label>
                 <div className="flex items-center space-x-3">
                   <Volume2 className="w-4 h-4 text-gray-400" />
-                  <div className="flex-1 bg-gray-700 rounded-full h-2">
-                    <div className="bg-primary-500 rounded-full h-2 w-3/4" />
+                  <div className="flex-1 bg-gray-700 rounded-full h-2 overflow-hidden">
+                    <div
+                      className="bg-primary-500 rounded-full h-2 transition-all duration-100 ease-linear"
+                      style={{ width: `${volume}%` }}
+                    />
                   </div>
-                  <span className="text-sm text-gray-400">75%</span>
+                  <span className="text-sm text-gray-400">
+                    {Math.round(volume)}%
+                  </span>
                 </div>
               </div>
             </div>
           </GlassCard>
-
-          {/* Waveform Visualizer
-          <GlassCard className="p-6">
-            <h3 className="text-xl font-bold text-white mb-4">Audio Waveform</h3>
-            <div className="bg-black/20 rounded-lg p-4 h-32 flex items-end justify-center space-x-1">
-              {waveformData.map((height, index) => (
-                <motion.div
-                  key={index}
-                  animate={{ height: `${height}%` }}
-                  transition={{ duration: 0.1 }}
-                  className="bg-gradient-to-t from-primary-500 to-secondary-500 w-2 rounded-t-sm min-h-[2px]"
-                />
-              ))}
-            </div>
-          </GlassCard> */}
         </div>
-        {/* Generate Guest Link Button */}
+
         <div>
           <Toaster position="top-right" reverseOrder={false} />
           <GuestLinkGenerator meetingId="yourRoomCodeHere" />
         </div>
 
-        {/* Transcription Output */}
         <GlassCard className="p-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-2">
             <h3 className="text-xl font-bold text-white">
@@ -366,7 +371,6 @@ const AudioCapture = () => {
           </div>
         </GlassCard>
 
-        {/* Action Buttons */}
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
           <motion.button
             whileHover={{ scale: 1.05 }}
