@@ -110,7 +110,7 @@ const AudioCapture = () => {
       ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
-          if (data.type === "transcription") {
+          if (data.type === "transcription" && typeof data.text === "string") {
             setTranscription((prev) => prev + " " + data.text);
           }
         } catch (e) {
