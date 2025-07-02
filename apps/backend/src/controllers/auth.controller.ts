@@ -2,9 +2,9 @@ import { Request, Response } from 'express';
 import { User } from '../models/user.model';
 import bcrypt from 'bcryptjs';
 import { signToken } from '../utils/jwt';
-import crypto from "crypto";
+import crypto from 'crypto';
 import nodemailer from 'nodemailer';
-import { sendResetEmail } from "../utils/email";
+import { sendResetEmail } from '../utils/email';
 import { sendEmail } from '../utils/email';
 
 class ValidationError extends Error {
@@ -62,9 +62,21 @@ export const login = async (req: Request, res: Response) => {
       throw new AuthenticationError('Invalid password');
     }
     const token = signToken({ id: user._id, role: user.role });
-    res.json({ token, user: { id: user._id, fullName: user.fullName, email, role: user.role } });
+    res.json({
+      token,
+      user: {
+        id: user._id,
+        fullName: user.fullName,
+        email,
+        role: user.role,
+        bio: user.bio,
+      },
+    });
   } catch (error) {
-    if (error instanceof ValidationError || error instanceof AuthenticationError) {
+    if (
+      error instanceof ValidationError ||
+      error instanceof AuthenticationError
+    ) {
       res.status(400).json({ message: error.message });
     } else {
       console.error(error);
@@ -80,16 +92,21 @@ export const forgotPassword = async (req: Request, res: Response) => {
     if (!user) {
       throw new ValidationError('Email not found');
     }
-    const token = crypto.randomBytes(32).toString("hex");
+    const token = crypto.randomBytes(32).toString('hex');
     user.passwordReset = {
       token,
       expires: new Date(Date.now() + 60 * 60 * 1000), // 1 hour
-      used: false
+      used: false,
     };
     await user.save();
     const resetLink = `${process.env.FRONTEND_URL}/reset-password/${token}`;
     await sendResetEmail(email, resetLink);
-    res.status(200).json({ message: "If an account with that email exists, you'll receive a password reset link shortly." });
+    res
+      .status(200)
+      .json({
+        message:
+          "If an account with that email exists, you'll receive a password reset link shortly.",
+      });
   } catch (error) {
     if (error instanceof ValidationError) {
       res.status(400).json({ message: error.message });
@@ -103,7 +120,7 @@ export const forgotPassword = async (req: Request, res: Response) => {
 export const resetPassword = async (req: Request, res: Response) => {
   try {
     const { token, password } = req.body;
-    const user = await User.findOne({ "passwordReset.token": token });
+    const user = await User.findOne({ 'passwordReset.token': token });
     if (!user) {
       throw new ValidationError('Invalid or expired token');
     }
@@ -117,7 +134,7 @@ export const resetPassword = async (req: Request, res: Response) => {
       user.passwordReset.expires = undefined;
     }
     await user.save();
-    res.json({ message: "Password reset successful" });
+    res.json({ message: 'Password reset successful' });
   } catch (error) {
     if (error instanceof ValidationError) {
       res.status(400).json({ message: error.message });
