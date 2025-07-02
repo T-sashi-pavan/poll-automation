@@ -92,6 +92,6 @@ export const setupWebSocketServer = (server: import('http').Server) => {
             console.warn('[Backend WS] Forced exit after graceful shutdown timeout.');
             clients.forEach(ws => ws.terminate()); // Terminate any remaining connections
             process.exit(1);
-        }, 5000); // 5 seconds timeout
+        }, 5003); // 5 seconds timeout
     });
 };

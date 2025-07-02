@@ -4,6 +4,8 @@
     "module": "commonjs",
     "outDir": "./dist",
     "rootDir": "../../",
+    "jsx": "react-jsx",
+    "types": ["vite/client", "react", "react-dom"],
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,

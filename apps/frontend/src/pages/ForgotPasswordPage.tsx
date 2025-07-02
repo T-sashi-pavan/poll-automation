@@ -13,20 +13,28 @@ interface ForgotPasswordForm {
 const ForgotPasswordPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const { forgotPassword } = useAuth();
-  const { register, handleSubmit, formState: { errors } } = useForm<ForgotPasswordForm>();
-
   const onSubmit = async (data: ForgotPasswordForm) => {
     setIsLoading(true);
+    setErrorMsg(null);
     try {
       await forgotPassword(data.email);
+      setSuccessMsg('If an account with that email exists, you\'ll receive a password reset link shortly.');
       setIsSuccess(true);
-    } catch (error) {
-      console.error('Password reset failed:', error);
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        setErrorMsg(error.message);
+      } else {
+        setErrorMsg('An unexpected error occurred.');
+      }
     } finally {
       setIsLoading(false);
     }
   };
+
+  const { register, handleSubmit, formState: { errors } } = useForm<ForgotPasswordForm>();
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-dark-900 via-dark-800 to-dark-900 p-4">
@@ -113,6 +121,10 @@ const ForgotPasswordPage = () => {
                   <p className="mt-1 text-sm text-red-400">{errors.email.message}</p>
                 )}
               </div>
+
+              {/* Error and Success Messages */}
+              {errorMsg && <div className="text-red-400 mb-2">{errorMsg}</div>}
+              {successMsg && <div className="text-green-400 mb-2">{successMsg}</div>}
 
               {/* Submit Button */}
               <motion.button
