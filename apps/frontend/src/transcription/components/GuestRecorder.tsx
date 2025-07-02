@@ -6,7 +6,7 @@ import {
   selectMicrophone
 } from '../utils/micManager';
 import { encodeWAV } from '../utils/wavEncoder';
-const CHUNK_INTERVAL = 10000; // 10 seconds
+
 
 interface GuestRecorderProps {
   guestId: string;
@@ -29,6 +29,8 @@ const GuestRecorder: React.FC<GuestRecorderProps> = ({
   const scriptNodeRef = useRef<ScriptProcessorNode | null>(null);
   const audioBufferRef = useRef<Float32Array[]>([]);
   const chunkIntervalRef = useRef<NodeJS.Timeout | null>(null);
+const CHUNK_INTERVAL = parseInt(import.meta.env.VITE_CHUNK_INTERVAL || '30000');
+
 
   useEffect(() => {
     getMicrophones().then((mics) => {

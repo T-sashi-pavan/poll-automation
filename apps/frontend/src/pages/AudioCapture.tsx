@@ -26,7 +26,7 @@ const AudioCapture = () => {
   const scriptNodeRef = useRef<ScriptProcessorNode | null>(null);
   const audioBufferRef = useRef<Float32Array[]>([]);
   const pausedRef = useRef<boolean>(false);
-  const CHUNK_INTERVAL = 10000;
+ const CHUNK_INTERVAL = parseInt(import.meta.env.VITE_CHUNK_INTERVAL || '30000');
 
   useEffect(() => {
     const fetchMicrophones = async () => {
