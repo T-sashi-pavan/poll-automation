@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Mic, MicOff, Volume2, VolumeX } from "lucide-react";
+import { Volume2, VolumeX } from "lucide-react";
 import { motion } from "framer-motion";
 import GlassCard from "../../components/GlassCard";
 import GuestRecorder from "../../transcription/components/GuestRecorder";
@@ -18,17 +18,9 @@ const GuestPage: React.FC = () => {
 
   const streamRef = useRef<MediaStream | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
-  const analyserRef = useRef<AnalyserNode | null>(null);
-  const dataArrayRef = useRef<Uint8Array | null>(null);
-  const hostSocketRef = useRef<WebSocket | null>(null);
+  const scriptNodeRef = useRef<ScriptProcessorNode | null>(null);
 
   const backendWsUrl = import.meta.env.VITE_BACKEND_WS_URL as string;
-
-  useEffect(() => {
-    const hostSocket = new WebSocket(`${backendWsUrl}/host-broadcast`);
-    hostSocketRef.current = hostSocket;
-    return () => hostSocket.close();
-  }, [backendWsUrl]);
 
   useEffect(() => {
     getMicrophones().then((devices) => {
@@ -57,30 +49,26 @@ const GuestPage: React.FC = () => {
       audioCtxRef.current.close();
     }
 
-    const audioCtx = new AudioContext();
-    const analyser = audioCtx.createAnalyser();
-    analyser.fftSize = 256;
+    const audioContext = new AudioContext({ sampleRate: 16000 });
+    const source = audioContext.createMediaStreamSource(stream);
+    const processor = audioContext.createScriptProcessor(4096, 1, 1);
 
-    const source = audioCtx.createMediaStreamSource(stream);
-    source.connect(analyser);
+processor.onaudioprocess = (e) => {
+  const input = e.inputBuffer.getChannelData(0);
+  const avg = input.reduce((a, b) => a + Math.abs(b), 0) / input.length;
 
-    const dataArray = new Uint8Array(analyser.frequencyBinCount);
-    analyserRef.current = analyser;
-    dataArrayRef.current = dataArray;
-    audioCtxRef.current = audioCtx;
+  // Amplify for better sensitivity, then ease to 0–100 range
+  const amplified = avg * 300; // increase multiplier as needed
+  const eased = Math.min(100, Math.floor(amplified ** 1.2)); // nonlinear scaling
+  setVolumeLevel(eased);
+};
 
-    const updateVolume = () => {
-      if (!analyserRef.current || !dataArrayRef.current) return;
-      analyserRef.current.getByteTimeDomainData(dataArrayRef.current);
 
-      const norm = dataArrayRef.current.map(v => Math.abs(v - 128));
-      const avg = norm.reduce((a, b) => a + b, 0) / norm.length;
+    source.connect(processor);
+    processor.connect(audioContext.destination);
 
-      setVolumeLevel(Math.min(100, Math.floor((avg / 128) * 100)));
-      requestAnimationFrame(updateVolume);
-    };
-
-    updateVolume();
+    audioCtxRef.current = audioContext;
+    scriptNodeRef.current = processor;
   };
 
   const toggleMute = () => {
@@ -132,23 +120,25 @@ const GuestPage: React.FC = () => {
 
             {/* Volume Bar */}
             <div className="w-full mt-4 text-sm text-gray-400">
-              Volume Level: {volumeLevel*10}%
-              <div className="w-full h-2 bg-gray-600 rounded mt-1">
-                <div className="h-2 bg-green-500 rounded" style={{ width: `${volumeLevel*10}%` }} />
+              Volume Level: {volumeLevel}%
+              <div className="w-full h-2 bg-gray-600 rounded mt-1 overflow-hidden">
+                <div
+                  className="h-2 bg-green-500 rounded transition-all duration-100 ease-linear"
+                  style={{ width: `${volumeLevel}%` }}
+                />
               </div>
             </div>
 
-            {/* Guest Recorder
-            {hostSocketRef.current && selectedMic && (
-              <div className="mt-6 w-full">
-                <GuestRecorder
-                  guestId={displayName}
-                  meetingId={meetingId}
-                  backendWsUrl={`${backendWsUrl}/guest-stream`}
-                  hostBroadcastSocket={hostSocketRef.current}
-                />
-              </div>
-            )} */}
+            {/* Guest Recorder (optional, keep commented if not needed) */}
+            {/* 
+            <div className="mt-6 w-full">
+              <GuestRecorder
+                guestId={displayName}
+                meetingId={meetingId}
+                backendWsUrl={`${backendWsUrl}/guest-stream`}
+              />
+            </div> 
+            */}
           </div>
         </GlassCard>
       </div>
