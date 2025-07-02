@@ -346,23 +346,24 @@ const AchievementPage = () => {
 
       {/* Filters */}
       <GlassCard className="p-6">
-        <div className="flex flex-col lg:flex-row gap-4">
-          {/* Search */}
-          <div className="flex-1">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search achievements..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full bg-white/10 border border-white/20 rounded-lg pl-10 pr-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500"
-              />
-            </div>
+        {/* Search Bar */}
+        <div className="mb-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search achievements..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full bg-white/10 border border-white/20 rounded-lg pl-10 pr-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500"
+            />
           </div>
-
+        </div>
+        
+        {/* Filters Row: Category left, Rarity right */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           {/* Category Filter */}
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-4">
             {categories.map((category) => (
               <button
                 key={category.id}
@@ -379,19 +380,21 @@ const AchievementPage = () => {
               </button>
             ))}
           </div>
-
+          
           {/* Rarity Filter */}
-          <select
-            value={selectedRarity}
-            onChange={(e) => setSelectedRarity(e.target.value)}
-            className="bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
-          >
-            <option value="all" className="bg-gray-800">All Rarities</option>
-            <option value="legendary" className="bg-gray-800">Legendary</option>
-            <option value="epic" className="bg-gray-800">Epic</option>
-            <option value="rare" className="bg-gray-800">Rare</option>
-            <option value="common" className="bg-gray-800">Common</option>
-          </select>
+          <div className="sm:ml-auto">
+            <select
+              value={selectedRarity}
+              onChange={(e) => setSelectedRarity(e.target.value)}
+              className="bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary-500 min-w-[150px]"
+            >
+              <option value="all" className="bg-gray-800">All Rarities</option>
+              <option value="legendary" className="bg-gray-800">Legendary</option>
+              <option value="epic" className="bg-gray-800">Epic</option>
+              <option value="rare" className="bg-gray-800">Rare</option>
+              <option value="common" className="bg-gray-800">Common</option>
+            </select>
+          </div>
         </div>
       </GlassCard>
 
