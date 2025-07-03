@@ -42,6 +42,9 @@ const LiveTranscriptFeed: React.FC<LiveTranscriptFeedProps> = ({ backendWsUrl })
             return updated;
           });
         }
+        else if (data.type === 'done') {
+  console.log('[LiveTranscriptFeed] Transcription fully done.');
+}
       } catch (err) {
         console.error('[LiveTranscriptFeed] Invalid transcript data:', err);
       }
