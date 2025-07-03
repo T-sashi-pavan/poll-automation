@@ -4,7 +4,7 @@ import pathlib
 import os
 #Reason for adding the home directory: Force the home directory to avoid Path.home() failure in Windows subprocesses used by ChromaDB
 load_dotenv(dotenv_path="services/pollgen-llm/.env")
-user_home_env = os.getenv("USER_HOME")  
+user_home_env = os.getenv("USER_HOME")  # Get the USER_HOME environment variable
 pathlib.Path.home = lambda: pathlib.Path(user_home_env)
 from fastapi import FastAPI, WebSocket
 from fastapi.responses import JSONResponse
