@@ -8,7 +8,7 @@ import {
 
 dotenv.config();
 
-const LLM_FORWARD_URL = process.env.LLM_FORWARD_URL || 'ws://localhost:5001/ws/transcripts';
+const LLM_FORWARD_URL = process.env.LLM_FORWARD_URL || 'ws://localhost:5001/ws/llm';
 
 type MeetingBuffer = {
   transcripts: TranscriptSegment[];
