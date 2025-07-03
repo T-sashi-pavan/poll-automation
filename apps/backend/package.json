@@ -32,7 +32,7 @@
     "express": "^5.1.0",
     "jsonwebtoken": "^9.0.2",
     "mongodb": "^6.17.0",
-    "mongoose": "^8.16.0",
+    "mongoose": "^8.16.1",
     "multer": "^2.0.1",
     "nodemailer": "^7.0.4",
     "ws": "^8.18.2"
@@ -44,7 +44,7 @@
     "@types/dotenv": "^8.2.3",
     "@types/express": "^5.0.3",
     "@types/jest": "^29.5.14",
-    "@types/jsonwebtoken": "^9.0.8",
+    "@types/jsonwebtoken": "^9.0.10",
     "@types/mongoose": "^5.11.97",
     "@types/multer": "^2.0.0",
     "@types/node": "^24.0.1",

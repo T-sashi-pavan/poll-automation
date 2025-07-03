@@ -36,15 +36,46 @@ export const register = async (req: Request, res: Response) => {
       role: 'student',
     });
     await user.save();
-    const subject = 'Welcome to Automatic Poll Generation System';
-    const html = `<p>Dear ${user.fullName},</p><p>Welcome to Automatic Poll Generation System. We are excited to have you on board!</p>`;
-    await sendEmail(user.email, subject, html);
-    res.status(201).json({ message: 'User created successfully' });
+
+    // Generate token for the new user
+    const token = signToken({ id: user._id, role: user.role });
+
+    // Try to send welcome email, but don't fail registration if email fails
+    try {
+      const subject = 'Welcome to Automatic Poll Generation System';
+      const html = `<p>Dear ${user.fullName},</p><p>Welcome to Automatic Poll Generation System. We are excited to have you on board!</p>`;
+      await sendEmail(user.email, subject, html);
+      console.log('✅ Welcome email sent successfully');
+    } catch (emailError) {
+      console.log(
+        '⚠️ Failed to send welcome email (non-critical):',
+        emailError
+      );
+      // Don't throw the error - registration should still succeed
+    }
+
+    // Return token and user data like login does
+    res.status(201).json({
+      message: 'User created successfully',
+      token,
+      user: {
+        id: user._id,
+        fullName: user.fullName,
+        email: user.email,
+        role: user.role,
+        bio: user.bio,
+      },
+    });
   } catch (error) {
+    console.error('❌ Registration error:', error);
     if (error instanceof ValidationError) {
       res.status(400).json({ message: error.message });
     } else {
-      console.error(error);
+      console.error('Full error details:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : 'No stack trace',
+        name: error instanceof Error ? error.name : 'Unknown error type',
+      });
       res.status(500).json({ message: 'Internal Server Error' });
     }
   }
@@ -101,12 +132,10 @@ export const forgotPassword = async (req: Request, res: Response) => {
     await user.save();
     const resetLink = `${process.env.FRONTEND_URL}/reset-password/${token}`;
     await sendResetEmail(email, resetLink);
-    res
-      .status(200)
-      .json({
-        message:
-          "If an account with that email exists, you'll receive a password reset link shortly.",
-      });
+    res.status(200).json({
+      message:
+        "If an account with that email exists, you'll receive a password reset link shortly.",
+    });
   } catch (error) {
     if (error instanceof ValidationError) {
       res.status(400).json({ message: error.message });

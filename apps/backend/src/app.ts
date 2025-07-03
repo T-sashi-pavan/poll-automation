@@ -6,7 +6,7 @@ import userRoutes from './routes/user.routes';
 import saveQuestionsRouter from './web/routes/save_questions';
 import settingsRouter from './web/routes/settings';
 import { errorHandler } from './middlewares/error.middleware';
-import path from "path";
+import path from 'path';
 import pollConfigRoutes from './web/routes/pollConfigRoutes';
 import pollRoutes from './web/routes/pollRoomCodeRoutes';
 
@@ -14,12 +14,14 @@ dotenv.config();
 
 const app = express();
 
-app.use(cors({
-  origin: 'http://localhost:5173', // frontend URL
-  credentials: true
-}));
+app.use(
+  cors({
+    origin: ['http://localhost:5173', 'http://localhost:3000'], // Added multiple origins
+    credentials: true,
+  })
+);
 app.use(express.json());
-app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 app.use('/settings', settingsRouter);
 app.use('/questions', saveQuestionsRouter);
