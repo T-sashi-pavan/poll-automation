@@ -125,7 +125,7 @@ const CHUNK_INTERVAL = parseInt(import.meta.env.VITE_CHUNK_INTERVAL || '30000');
       stopStreaming();
     };
   };
-
+//function to stop streaming and send final audio chunk
   const stopStreaming = () => {
   if (!wsRef.current) return;
 
