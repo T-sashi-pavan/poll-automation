@@ -127,23 +127,32 @@ const CHUNK_INTERVAL = parseInt(import.meta.env.VITE_CHUNK_INTERVAL || '30000');
   };
 
   const stopStreaming = () => {
-    console.log('[GuestRecorder] Stopping...');
-    if (scriptNodeRef.current) {
-      scriptNodeRef.current.disconnect();
-    }
-    if (audioContextRef.current) {
-      audioContextRef.current.close();
-    }
-    if (chunkIntervalRef.current) {
-      clearInterval(chunkIntervalRef.current);
-    }
-    if (wsRef.current?.readyState === WebSocket.OPEN) {
-      wsRef.current.close();
-    }
+  if (!wsRef.current) return;
 
+  if (audioBufferRef.current.length > 0) {
+    const allSamples = Float32Array.from(audioBufferRef.current.flat());
+    const wavBuffer = encodeWAV(allSamples, 16000);
+    wsRef.current.send(wavBuffer);
+    console.log('[GuestRecorder] Final chunk sent on stop');
     audioBufferRef.current = [];
-    setIsStreaming(false);
-  };
+  }
+
+  wsRef.current.send(JSON.stringify({ type: "stop" }));
+  console.log('[GuestRecorder] Sent stop signal');
+
+  wsRef.current.addEventListener("message", (event) => {
+    try {
+      const data = JSON.parse(event.data);
+      if (data.type === "done") {
+        console.log('[GuestRecorder] Done received, closing socket.');
+        wsRef.current?.close();
+        setIsStreaming(false);
+      }
+    } catch (_) {}
+  });
+};
+
+
 
   return (
     <div>

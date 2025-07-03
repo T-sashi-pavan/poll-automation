@@ -63,12 +63,25 @@ const HostMicControls: React.FC<HostMicControlsProps> = ({ meetingId, backendWsU
     };
   };
 
-  const stopStreaming = () => {
-    processorRef.current?.disconnect();
-    audioContextRef.current?.close();
-    wsRef.current?.close();
-    setIsStreaming(false);
-  };
+const stopStreaming = () => {
+  if (!wsRef.current) return;
+
+  wsRef.current.send(JSON.stringify({ type: "stop" }));
+  console.log('[HostMicControls] Sent stop');
+
+  wsRef.current.addEventListener("message", (event) => {
+    try {
+      const data = JSON.parse(event.data);
+      if (data.type === "done") {
+        console.log('[HostMicControls] Received done, closing socket.');
+        wsRef.current?.close();
+        setIsStreaming(false);
+      }
+    } catch (_) {}
+  });
+};
+
+
 
   return (
     <div>
