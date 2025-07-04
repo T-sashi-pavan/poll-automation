@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { Volume2, VolumeX } from "lucide-react";
 import { motion } from "framer-motion";
 import GlassCard from "../../components/GlassCard";
-import GuestRecorder from "../../transcription/components/GuestRecorder";
+import GuestMicControls from "../../transcription/components/GuestRecorder";
 import { getMicrophones, selectMicrophone } from "../../transcription/utils/micManager";
 
 const GuestPage: React.FC = () => {
