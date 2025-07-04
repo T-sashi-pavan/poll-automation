@@ -44,6 +44,7 @@ export async function selectMicrophone(deviceId: string): Promise<MediaStream | 
     audioContext = new AudioContext();
     const source = audioContext.createMediaStreamSource(stream);
     gainNode = audioContext.createGain();
+    gainNode.gain.value = 0; // Silent output to prevent echoing
     source.connect(gainNode).connect(audioContext.destination);
 
     return stream;
