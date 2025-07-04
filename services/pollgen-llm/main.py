@@ -1,14 +1,11 @@
 from langchain_ollama.llms import OllamaLLM
 from langchain_core.prompts import ChatPromptTemplate
-from vector import retriever
-import requests
-import json
-import re
+from vector import get_retriever, generate_hypothetical_answer
 
 model = OllamaLLM(model="llama3.2")
 
-template = """
-Based STRICTLY on the following educational content spoken by the instructor, generate {num_questions} high-quality, thought-provoking multiple-choice questions.
+question_prompt_template = """
+Based STRICTLY on the following educational content spoken by the instructor, generate {num_questions} high-quality, thought-provoking {question_type} questions.
 
 CONTEXT (Instructor's content):
 {combined_context}
@@ -28,7 +25,7 @@ FORMAT your response as a JSON array:
         "options": ["A) Option 1", "B) Option 2", "C) Option 3", "D) Option 4"],
         "correct_answer": "A",
         "explanation": "Brief explanation of why this is correct",
-        "difficulty": "medium/hard",
+        "difficulty": "{difficulty}",
         "concept": "Main concept being tested"
     }}
 ]
@@ -43,36 +40,21 @@ Important: Your output MUST include all of the following fields for every questi
 - "explanation"
 - "difficulty"
 - "concept"
-
-Any missing field will invalidate the response.
 """
 
-prompt = ChatPromptTemplate.from_template(template)
+prompt = ChatPromptTemplate.from_template(question_prompt_template)
 chain = prompt | model
 
-while True:
-    num = input("Enter number of questions to generate (q to quit): ")
-    if num.strip().lower() == 'q':
-        break
-
-    docs = retriever.invoke("Generate quiz questions based only on this content.")
-    combined_context = "\n\n".join([doc.page_content for doc in docs])
-
-    result = chain.invoke({"combined_context": combined_context, "num_questions": num})
-    print("Generated Questions:\n", result)
-
-    try:
-        json_match = re.search(r"\[\s*{.*?}\s*\]", result, re.DOTALL)
-        if not json_match:
-            raise ValueError("No valid JSON array found in the model response.")
-
-        json_string = json_match.group(0)
-        questions_json = json.loads(json_string)
-
-        response = requests.post("http://localhost:8000/pollquestions", json=questions_json)
-        if response.status_code == 200:
-            print("Questions successfully sent to /pollquestions")
-        else:
-            print(f"Failed to POST. Status: {response.status_code}, Message: {response.text}")
-    except Exception as e:
-        print("Error parsing or posting JSON:", str(e))  
+def generate_questions_llama_chain(settings: dict):
+    query = "generate good questions"
+    hypothetical_answer = generate_hypothetical_answer(query)  # HyDE step
+    retriever = get_retriever(hypothetical_answer)
+    docs = retriever.invoke(hypothetical_answer)
+    combined_context = docs[0].page_content
+    print(settings["quantity"],settings["types"])
+    return chain.invoke({
+        "combined_context": combined_context,
+        "num_questions": settings["quantity"],
+        "question_type": settings["types"],
+        "difficulty": "medium"
+    })
