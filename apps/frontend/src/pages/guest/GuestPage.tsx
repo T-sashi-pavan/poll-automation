@@ -73,16 +73,16 @@ const GuestPage: React.FC = () => {
 
     console.log('[GuestPage] Audio context and processor created');
 
-processor.onaudioprocess = (e) => {
-  const input = e.inputBuffer.getChannelData(0);
-  const avg = input.reduce((a, b) => a + Math.abs(b), 0) / input.length;
+    processor.onaudioprocess = (e) => {
+      const input = e.inputBuffer.getChannelData(0);
+      const avg = input.reduce((a, b) => a + Math.abs(b), 0) / input.length;
 
       // Show volume level even when muted (for visual feedback)
       if (!isMuted) {
-  // Amplify for better sensitivity, then ease to 0–100 range
-  const amplified = avg * 300; // increase multiplier as needed
-  const eased = Math.min(100, Math.floor(amplified ** 1.2)); // nonlinear scaling
-  setVolumeLevel(eased);
+        // Amplify for better sensitivity, then ease to 0–100 range
+        const amplified = avg * 300; // increase multiplier as needed
+        const eased = Math.min(100, Math.floor(amplified ** 1.2)); // nonlinear scaling
+        setVolumeLevel(eased);
         if (eased > 5) console.log('[GuestPage] Volume level:', eased);
       } else {
         // Show reduced volume when muted but still show some activity
@@ -191,7 +191,7 @@ processor.onaudioprocess = (e) => {
                   setTranscriptions(prev => [...prev.slice(-4), text]);
                 }}
               />
-            </div> 
+            </div>
 
             {/* Real-time Transcriptions Display */}
             {transcriptions.length > 0 && (
