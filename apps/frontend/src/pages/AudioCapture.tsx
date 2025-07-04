@@ -57,48 +57,48 @@ const AudioCapture = () => {
 
   //adding real-time transcription logic
   useEffect(() => {
-  //       if (isRecording && !isPaused) {
-  //     const mockTranscriptions = [
-  //       "Today we're going to discuss React hooks and their implementation...",
-  //       "State management is crucial for building scalable applications...",
-  //       "Let's explore the useEffect hook and its dependency array...",
-  //       "Component lifecycle methods can be replaced with hooks...",
-  //       "Error boundaries are important for handling runtime errors..."
-  //     ];
+    //       if (isRecording && !isPaused) {
+    //     const mockTranscriptions = [
+    //       "Today we're going to discuss React hooks and their implementation...",
+    //       "State management is crucial for building scalable applications...",
+    //       "Let's explore the useEffect hook and its dependency array...",
+    //       "Component lifecycle methods can be replaced with hooks...",
+    //       "Error boundaries are important for handling runtime errors..."
+    //     ];
 
-  //     const interval = setInterval(() => {
-  //       const randomText = mockTranscriptions[Math.floor(Math.random() * mockTranscriptions.length)];
-  //       setTranscription(prev => prev + " " + randomText);
-  //       setConfidence(Math.random() * 30 + 70); // 70-100% confidence
-  //     }, 3000);
+    //     const interval = setInterval(() => {
+    //       const randomText = mockTranscriptions[Math.floor(Math.random() * mockTranscriptions.length)];
+    //       setTranscription(prev => prev + " " + randomText);
+    //       setConfidence(Math.random() * 30 + 70); // 70-100% confidence
+    //     }, 3000);
 
-  //     return () => clearInterval(interval);
-  //   }
-  // }, [isRecording, isPaused]);
-  const socket = new WebSocket("ws://localhost:5001/ws/transcripts");
-  socket.onopen = () => {
-    console.log("Connected to transcript WebSocket");
-  };
-  socket.onmessage = async (event) => {
-    const data = JSON.parse(event.data);
-    if (data.status === "updated") {
-      console.log("Transcript update received!");
-      try {
-        const res = await fetch("http://localhost:5001/transcripts");
-        const json = await res.json();
-        setTranscription(json.text || ""); 
-      } catch (err) {
-        console.error("Failed to fetch transcript:", err);
+    //     return () => clearInterval(interval);
+    //   }
+    // }, [isRecording, isPaused]);
+    const socket = new WebSocket("ws://localhost:5001/ws/transcripts");
+    socket.onopen = () => {
+      console.log("Connected to transcript WebSocket");
+    };
+    socket.onmessage = async (event) => {
+      const data = JSON.parse(event.data);
+      if (data.status === "updated") {
+        console.log("Transcript update received!");
+        try {
+          const res = await fetch("http://localhost:5001/transcripts");
+          const json = await res.json();
+          setTranscription(json.text || "");
+        } catch (err) {
+          console.error("Failed to fetch transcript:", err);
+        }
       }
-    }
-  };
-  socket.onerror = (err) => {
-    console.error("WebSocket error:", err);
-  };
-  return () => {
-    socket.close();
-  };
-}, []);
+    };
+    socket.onerror = (err) => {
+      console.error("WebSocket error:", err);
+    };
+    return () => {
+      socket.close();
+    };
+  }, []);
   const toggleRecording = () => {
     if (isRecording) {
       setIsRecording(false);
@@ -148,25 +148,23 @@ const AudioCapture = () => {
           {/* Recording Controls */}
           <GlassCard className="p-6">
             <h3 className="text-xl font-bold text-white mb-4">Recording Controls</h3>
-            <div className="space-y-4">
+            <div className="space-y-8">
               <div className="flex items-center justify-center">
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={toggleRecording}
-                  className={`w-20 h-20 rounded-full flex items-center justify-center ${isRecording
-                    ? 'bg-red-500 hover:bg-red-600'
-                    : 'bg-primary-500 hover:bg-primary-600'
-                    } transition-colors duration-200`}
+                  className={`px-6 py-3 rounded-full text-lg font-semibold shadow-md transition duration-300 ease-in-out
+    ${isRecording
+                      ? 'bg-red-600 text-white hover:bg-red-700 shadow-red-500/30'
+                      : 'bg-green-500 text-white hover:bg-green-600 shadow-green-500/30'
+                    }`}
                 >
-                  {isRecording ? (
-                    <MicOff className="w-8 h-8 text-white" />
-                  ) : (
-                    <Mic className="w-8 h-8 text-white" />
-                  )}
+                  {isRecording ? "STOP" : "START"}
                 </motion.button>
               </div>
 
+              {/* Mic Toggle and Clear Button */}
               <div className="flex items-center justify-center space-x-4">
                 <motion.button
                   whileHover={{ scale: 1.02 }}
@@ -176,9 +174,9 @@ const AudioCapture = () => {
                   className="px-4 py-2 bg-white/10 rounded-lg text-white hover:bg-white/20 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
                 >
                   {isPaused ? (
-                    <Play className="w-4 h-4" />
+                    <MicOff className="w-4 h-4" /> // <-- Changed to MicOff
                   ) : (
-                    <Pause className="w-4 h-4" />
+                    <Mic className="w-4 h-4" />   // <-- Changed to Mic
                   )}
                 </motion.button>
 
