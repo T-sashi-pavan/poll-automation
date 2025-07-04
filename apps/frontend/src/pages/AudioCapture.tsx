@@ -68,22 +68,29 @@ const AudioCapture = () => {
       const processor = audioContext.createScriptProcessor(4096, 1, 1);
 
       processor.onaudioprocess = (e) => {
+        const input = e.inputBuffer.getChannelData(0);
+
+        // Always update volume for visual feedback
+        const avg = input.reduce((a, b) => a + Math.abs(b), 0) / input.length;
+        setVolume(Math.min(100, avg * 1000)); // Adjusted scale
+
+        // Optional: visual waveform bars
+        const newWave = waveformData.map(() => Math.random() * avg * 100);
+        setWaveformData(newWave);
+
+        // Only buffer audio when not paused
         if (!pausedRef.current) {
-          const input = e.inputBuffer.getChannelData(0);
           audioBufferRef.current.push(new Float32Array(input));
-
-          // Live volume tracking
-          const avg = input.reduce((a, b) => a + Math.abs(b), 0) / input.length;
-          setVolume(Math.min(100, avg * 1000)); // Adjusted scale
-
-          // Optional: visual waveform bars
-          const newWave = waveformData.map(() => Math.random() * avg * 100);
-          setWaveformData(newWave);
         }
       };
 
       source.connect(processor);
-      processor.connect(audioContext.destination);
+
+      // Connect to a dummy gain node to enable processing without audio output
+      const gainNode = audioContext.createGain();
+      gainNode.gain.value = 0; // Silent output
+      processor.connect(gainNode);
+      gainNode.connect(audioContext.destination);
 
       const ws = new WebSocket(import.meta.env.VITE_BACKEND_WS_URL as string);
       ws.binaryType = "arraybuffer";
