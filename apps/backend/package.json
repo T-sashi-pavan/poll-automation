@@ -24,6 +24,7 @@
   "license": "ISC",
   "packageManager": "pnpm@10.12.1",
   "dependencies": {
+    "@types/socket.io": "^3.0.2",
     "axios": "^1.9.0",
     "bcryptjs": "^3.0.2",
     "buffer": "^6.0.3",
@@ -35,6 +36,7 @@
     "mongoose": "^8.16.1",
     "multer": "^2.0.1",
     "nodemailer": "^7.0.4",
+    "socket.io": "^4.8.1",
     "ws": "^8.18.2"
   },
   "devDependencies": {
