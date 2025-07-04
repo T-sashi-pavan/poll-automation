@@ -25,6 +25,7 @@ import GuestPage from "./pages/guest/GuestPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import WebSocketTest from "./pages/WebSocketTest";
 import RealTimeDataDemo from "./pages/RealTimeDataDemo";
+import TestPollPage from "./pages/TestPollPage";
 
 // Student dashboard section imports
 import JoinPollPage from "./components/student/JoinPollPage";
@@ -61,6 +62,7 @@ function App() {
                 />
                 <Route path="/websocket-test" element={<WebSocketTest />} />
                 <Route path="/realtime-demo" element={<RealTimeDataDemo />} />
+                <Route path="/test-poll" element={<TestPollPage />} />
                 {/* Host Dashboard Routes */}
                 <Route path="/host" element={<HostDashboard />} />
                 <Route path="/host/audio" element={<AudioCapture />} />
@@ -93,6 +95,7 @@ function App() {
                   <Route path="change-password" element={<ChangePassword />} />
                   <Route path="active-sessions" element={<ActiveSessions />} />
                 </Route>
+                <Route path="/test-poll" element={<TestPollPage />} />
               </Routes>
             </div>
           </Router>
