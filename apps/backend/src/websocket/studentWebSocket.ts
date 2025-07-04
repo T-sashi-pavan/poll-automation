@@ -28,6 +28,23 @@ export const initializeStudentSocket = (server: any) => {
       // Handle the response logic here
     });
 
+    // Send initial data when client connects
+    socket.on('request-initial-data', async () => {
+      try {
+        const questions = await Question.find({
+          is_active: true,
+          is_approved: true,
+        });
+        socket.emit('initial-data', {
+          questions: questions,
+          timestamp: new Date().toISOString(),
+        });
+        console.log(`📤 Sent initial data to ${socket.id}`);
+      } catch (error) {
+        console.error('❌ Error sending initial data:', error);
+      }
+    });
+
     socket.on('disconnect', () => {
       console.log('❌ Student disconnected:', socket.id);
     });
@@ -41,7 +58,7 @@ export const sendPollToStudents = async () => {
   try {
     const questions = await Question.aggregate([
       { $match: { is_active: true, is_approved: true } },
-      { $sample: { size: 5 } },
+      // { $sample: { size: 5 } },
     ]);
 
     console.log('📤 Sending poll to students:', questions.length, 'questions');
@@ -54,6 +71,53 @@ export const sendPollToStudents = async () => {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error',
     };
+  }
+};
+
+// Utility functions to broadcast data changes
+export const broadcastQuestionAdded = (question: any) => {
+  if (io) {
+    io.emit('question-added', {
+      type: 'insert',
+      collection: 'questions',
+      data: question,
+      timestamp: new Date().toISOString(),
+    });
+    console.log('📤 Broadcasted new question to all clients');
+  }
+};
+
+export const broadcastQuestionUpdated = (question: any) => {
+  if (io) {
+    io.emit('question-updated', {
+      type: 'update',
+      collection: 'questions',
+      data: question,
+      timestamp: new Date().toISOString(),
+    });
+    console.log('📤 Broadcasted question update to all clients');
+  }
+};
+
+export const broadcastQuestionDeleted = (questionId: string) => {
+  if (io) {
+    io.emit('question-deleted', {
+      type: 'delete',
+      collection: 'questions',
+      id: questionId,
+      timestamp: new Date().toISOString(),
+    });
+    console.log('📤 Broadcasted question deletion to all clients');
+  }
+};
+
+export const broadcastToRoom = (roomId: string, event: string, data: any) => {
+  if (io) {
+    io.to(roomId).emit(event, {
+      ...data,
+      timestamp: new Date().toISOString(),
+    });
+    console.log(`📤 Broadcasted ${event} to room ${roomId}`);
   }
 };
 

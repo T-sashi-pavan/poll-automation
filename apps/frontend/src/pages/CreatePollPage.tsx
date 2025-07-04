@@ -321,7 +321,7 @@ const CreatePollPage: React.FC = () => {
       });
 
       const response = await axios.post(
-        "http://localhost:5000/api/room-code/polls",
+        "http://localhost:3001/api/room-code/polls",
         {
           room_code: roomCode,
           room_title: roomName, // Changed from room_name to room_title to match backend

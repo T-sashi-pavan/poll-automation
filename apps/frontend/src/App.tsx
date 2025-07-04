@@ -24,6 +24,7 @@ import ChangePassword from "./components/student/ChangePassword";
 import GuestPage from "./pages/guest/GuestPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import WebSocketTest from "./pages/WebSocketTest";
+import RealTimeDataDemo from "./pages/RealTimeDataDemo";
 
 // Student dashboard section imports
 import JoinPollPage from "./components/student/JoinPollPage";
@@ -59,6 +60,7 @@ function App() {
                   element={<ResetPasswordPage />}
                 />
                 <Route path="/websocket-test" element={<WebSocketTest />} />
+                <Route path="/realtime-demo" element={<RealTimeDataDemo />} />
                 {/* Host Dashboard Routes */}
                 <Route path="/host" element={<HostDashboard />} />
                 <Route path="/host/audio" element={<AudioCapture />} />
