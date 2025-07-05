@@ -24,7 +24,6 @@
   "license": "ISC",
   "packageManager": "pnpm@10.12.1",
   "dependencies": {
-    "@types/socket.io": "^3.0.2",
     "axios": "^1.9.0",
     "bcryptjs": "^3.0.2",
     "buffer": "^6.0.3",
@@ -53,6 +52,7 @@
     "@types/nodemailer": "^6.4.17",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
+    "@types/socket.io": "^3.0.2",
     "@types/supertest": "^6.0.3",
     "@types/ws": "^8.18.1",
     "@typescript-eslint/eslint-plugin": "^8.34.0",

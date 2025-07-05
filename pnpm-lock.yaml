@@ -33,9 +33,6 @@ importers:
 
   apps/backend:
     dependencies:
-      '@types/socket.io':
-        specifier: ^3.0.2
-        version: 3.0.2
       axios:
         specifier: ^1.9.0
         version: 1.10.0
@@ -115,6 +112,9 @@ importers:
       '@types/react-dom':
         specifier: ^19.1.6
         version: 19.1.6(@types/react@19.1.8)
+      '@types/socket.io':
+        specifier: ^3.0.2
+        version: 3.0.2
       '@types/supertest':
         specifier: ^6.0.3
         version: 6.0.3
