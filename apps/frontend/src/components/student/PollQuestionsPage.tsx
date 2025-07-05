@@ -251,6 +251,11 @@ const PollQuestionsPage: React.FC<PollQuestionsPageProps> = ({
     setAnsweredCount(0);
   };
 
+  // --- handleFinalResults ---
+  const handleFinalResults = () => {
+    console.log(score);
+  };
+
   // --- getDifficultyColor ---
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
@@ -920,7 +925,7 @@ const PollQuestionsPage: React.FC<PollQuestionsPageProps> = ({
                   className="mt-8 text-center"
                 >
                   <button
-                    onClick={() => onComplete?.()}
+                    onClick={handleFinalResults}
                     className="inline-flex items-center space-x-3 px-8 py-4 bg-gradient-to-r from-primary-500 to-secondary-500 text-white font-bold text-lg rounded-2xl hover:from-primary-600 hover:to-secondary-600 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
                   >
                     <Award className="w-6 h-6" />
