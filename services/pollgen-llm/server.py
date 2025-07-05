@@ -41,7 +41,7 @@ app.add_middleware(
 
 # === Temporary fallback settings ===
 current_settings = {
-    "source": "ollama",
+    "source": "gemini",
     "quantity": 1,
     "types": ["mcq"],
     "contextRange": "latest",
