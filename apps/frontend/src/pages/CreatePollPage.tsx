@@ -357,18 +357,24 @@ const CreatePollPage: React.FC = () => {
     setIsLoading(true);
 
     try {
-      console.log("Creating poll with data:", {
-        room_code: roomCode,
-        room_title: roomName,
-        user_id: "user_123456789",
-      });
+      // Get user ID from localStorage user object
+      const userString = localStorage.getItem("user");
+      let userId = "unknown_user";
+      if (userString) {
+        try {
+          const userObj = JSON.parse(userString);
+          userId = userObj.id || "unknown_user";
+        } catch (e) {
+          console.error("Failed to parse user from localStorage:", e);
+        }
+      }
 
       const response = await axios.post(
         "http://localhost:3001/api/room-code/polls",
         {
           room_code: roomCode,
           room_title: roomName, // Changed from room_name to room_title to match backend
-          user_id: "user_123456789", // Replace with actual user ID from auth context
+          user_id: userId,
         }
       );
 
