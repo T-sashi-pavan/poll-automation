@@ -55,7 +55,7 @@ const GuestMicControls: React.FC<GuestMicControlsProps> = ({
       return;
     }
 
-    const ws = new WebSocket(import.meta.env.VITE_BACKEND_WS_URL as string);
+    const ws = new WebSocket(import.meta.env.VITE_BACKEND_WS_URL_GUEST as string);
     ws.binaryType = 'arraybuffer';
     wsRef.current = ws;
 
