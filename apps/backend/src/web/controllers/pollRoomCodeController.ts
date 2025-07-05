@@ -47,10 +47,10 @@ export const getPollById = async (
   next: NextFunction
 ): Promise<void> => {
   console.log(req.params.id);
-  
+
   try {
     const poll = await PollGeneration.find({
-      'room_code': req.params.id
+      room_code: req.params.id,
     });
     if (!poll) {
       res.status(404).json({ message: 'Poll not found.' });
@@ -84,6 +84,38 @@ export const updatePoll = async (
     }
 
     res.status(200).json(updatedPoll);
+  } catch (err) {
+    next(err);
+  }
+};
+
+// DELETE /polls/:roomCode - Delete poll by room code
+export const deletePollByRoomCode = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { roomCode } = req.params;
+
+    if (!roomCode) {
+      res.status(400).json({ message: 'Room code is required.' });
+      return;
+    }
+
+    const deletedPoll = await PollGeneration.findOneAndDelete({
+      room_code: roomCode,
+    });
+
+    if (!deletedPoll) {
+      res.status(404).json({ message: 'Poll not found.' });
+      return;
+    }
+
+    res.status(200).json({
+      message: 'Poll deleted successfully',
+      deletedPoll,
+    });
   } catch (err) {
     next(err);
   }
