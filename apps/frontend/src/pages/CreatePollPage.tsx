@@ -69,7 +69,13 @@ const CreatePollPage: React.FC = () => {
         setRoomCode(generateRoomCode());
       }
     } else {
-      setRoomCode(generateRoomCode());
+      // Check if we have room data in localStorage from previous sessions
+      const storedRoomCode = localStorage.getItem("roomCode");
+      if (storedRoomCode) {
+        setRoomCode(storedRoomCode);
+      } else {
+        setRoomCode(generateRoomCode());
+      }
     }
   }, []);
 
@@ -110,16 +116,53 @@ const CreatePollPage: React.FC = () => {
   };
 
   // Handle destroy room
-  const handleDestroyRoom = () => {
+  const handleDestroyRoom = async () => {
     setIsDestroying(true);
-    setTimeout(() => {
-      setIsPollActive(false);
-      setTimeRemaining(3 * 60 * 60); // Reset to 3 hours
-      setRoomCode(generateRoomCode()); // Generate new code
-      setIsDestroying(false);
-      localStorage.removeItem(POLL_STORAGE_KEY); // Clear persisted session
-      console.log("Room destroyed and reset");
-    }, 1500);
+
+    try {
+      // Get room code from localStorage
+      const storedRoomCode = localStorage.getItem("roomCode");
+
+      if (storedRoomCode) {
+        console.log("Deleting poll with room code:", storedRoomCode);
+
+        const response = await axios.delete(
+          `http://localhost:3001/api/room-code/polls/${storedRoomCode}`
+        );
+
+        console.log("Poll deleted successfully:", response.data);
+
+        // Remove room data from localStorage
+        localStorage.removeItem("roomId");
+        localStorage.removeItem("roomCode");
+      } else {
+        console.warn("No room code found in localStorage");
+      }
+
+      // Reset UI state
+      setTimeout(() => {
+        setIsPollActive(false);
+        setTimeRemaining(3 * 60 * 60); // Reset to 3 hours
+        setRoomCode(generateRoomCode()); // Generate new code
+        setIsDestroying(false);
+        localStorage.removeItem(POLL_STORAGE_KEY); // Clear persisted session
+        console.log("Room destroyed and reset");
+      }, 1500);
+    } catch (error) {
+      console.error("Error deleting poll:", error);
+
+      // Still reset UI even if deletion fails
+      setTimeout(() => {
+        setIsPollActive(false);
+        setTimeRemaining(3 * 60 * 60); // Reset to 3 hours
+        setRoomCode(generateRoomCode()); // Generate new code
+        setIsDestroying(false);
+        localStorage.removeItem(POLL_STORAGE_KEY); // Clear persisted session
+        localStorage.removeItem("roomId");
+        localStorage.removeItem("roomCode");
+        console.log("Room destroyed and reset (with error)");
+      }, 1500);
+    }
   };
 
   // Format time remaining
@@ -314,22 +357,32 @@ const CreatePollPage: React.FC = () => {
     setIsLoading(true);
 
     try {
-      console.log("Creating poll with data:", {
-        room_code: roomCode,
-        room_title: roomName,
-        user_id: "user_123456789",
-      });
+      // Get user ID from localStorage user object
+      const userString = localStorage.getItem("user");
+      let userId = "unknown_user";
+      if (userString) {
+        try {
+          const userObj = JSON.parse(userString);
+          userId = userObj.id || "unknown_user";
+        } catch (e) {
+          console.error("Failed to parse user from localStorage:", e);
+        }
+      }
 
       const response = await axios.post(
         "http://localhost:3001/api/room-code/polls",
         {
           room_code: roomCode,
           room_title: roomName, // Changed from room_name to room_title to match backend
-          user_id: "user_123456789", // Replace with actual user ID from auth context
+          user_id: userId,
         }
       );
 
       console.log("Poll created successfully:", response.data);
+
+      // Store the room ID in localStorage
+      localStorage.setItem("roomId", response.data._id);
+      localStorage.setItem("roomCode", roomCode);
 
       // Set poll as active immediately after successful API call
       setIsPollActive(true);
@@ -529,8 +582,8 @@ const CreatePollPage: React.FC = () => {
                       isPollActive
                         ? "bg-green-600 text-white cursor-default"
                         : isLoading
-                        ? "bg-gray-600 text-gray-400 cursor-not-allowed"
-                        : "bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-lg hover:shadow-xl"
+                          ? "bg-gray-600 text-gray-400 cursor-not-allowed"
+                          : "bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-lg hover:shadow-xl"
                     }`}
                   >
                     {isLoading ? (
@@ -583,8 +636,8 @@ const CreatePollPage: React.FC = () => {
                       isDragOver
                         ? "border-primary-500/50 bg-primary-500/10"
                         : errors.csv
-                        ? "border-red-500/50 bg-red-500/5"
-                        : "border-white/20 hover:border-white/30"
+                          ? "border-red-500/50 bg-red-500/5"
+                          : "border-white/20 hover:border-white/30"
                     }`}
                   >
                     <input
@@ -687,8 +740,8 @@ const CreatePollPage: React.FC = () => {
                           invitesSent
                             ? "bg-green-600 text-white cursor-default"
                             : isSendingInvites
-                            ? "bg-gray-600 text-gray-400 cursor-not-allowed"
-                            : "bg-gradient-to-r from-primary-500 to-secondary-500 text-white shadow-lg hover:shadow-xl"
+                              ? "bg-gray-600 text-gray-400 cursor-not-allowed"
+                              : "bg-gradient-to-r from-primary-500 to-secondary-500 text-white shadow-lg hover:shadow-xl"
                         }`}
                       >
                         {isSendingInvites ? (

@@ -251,6 +251,66 @@ const PollQuestionsPage: React.FC<PollQuestionsPageProps> = ({
     setAnsweredCount(0);
   };
 
+  // --- handleFinalResults ---
+  const handleFinalResults = async () => {
+    try {
+      // Get user data from localStorage
+      const storedUser = localStorage.getItem("user");
+      if (!storedUser) {
+        console.error("No user found in localStorage");
+        showToast("Error: User not found", "warning");
+        return;
+      }
+
+      const user = JSON.parse(storedUser);
+      const API_URL =
+        import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+
+      // Prepare result data
+      const resultData = {
+        user_name:
+          user.fullName ||
+          (user.firstName && user.lastName
+            ? `${user.firstName} ${user.lastName}`
+            : "Unknown User"),
+        user_id: user.id,
+        score: score,
+        room_code: roomCode,
+      };
+
+      // Validate required fields
+      if (!resultData.user_id) {
+        console.error("User ID is missing");
+        showToast("Error: User ID is missing", "warning");
+        return;
+      }
+
+      console.log("Saving result:", resultData);
+
+      // Send result to backend
+      const response = await fetch(`${API_URL}/results`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(resultData),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log("Result saved successfully:", result);
+        showToast("Result saved successfully!", "success");
+      } else {
+        const error = await response.json();
+        console.error("Error saving result:", error);
+        showToast("Error saving result", "warning");
+      }
+    } catch (error) {
+      console.error("Error saving result:", error);
+      showToast("Error saving result", "warning");
+    }
+  };
+
   // --- getDifficultyColor ---
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
@@ -920,7 +980,7 @@ const PollQuestionsPage: React.FC<PollQuestionsPageProps> = ({
                   className="mt-8 text-center"
                 >
                   <button
-                    onClick={() => onComplete?.()}
+                    onClick={handleFinalResults}
                     className="inline-flex items-center space-x-3 px-8 py-4 bg-gradient-to-r from-primary-500 to-secondary-500 text-white font-bold text-lg rounded-2xl hover:from-primary-600 hover:to-secondary-600 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
                   >
                     <Award className="w-6 h-6" />
