@@ -5,6 +5,7 @@ import authRoutes from './routes/auth.routes';
 import userRoutes from './routes/user.routes';
 import pollRoutes from './routes/poll.routes';
 import questionRoutes from './routes/question.routes';
+import resultRoutes from './routes/result.routes';
 import saveQuestionsRouter from './web/routes/save_questions';
 import settingsRouter from './web/routes/settings';
 import { errorHandler } from './middlewares/error.middleware';
@@ -39,6 +40,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/polls', pollRoutes);
 app.use('/api/questions', questionRoutes);
+app.use('/api/results', resultRoutes);
 
 app.use(errorHandler);
 
