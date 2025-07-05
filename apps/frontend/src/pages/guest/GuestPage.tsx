@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { Volume2, VolumeX } from "lucide-react";
 import { motion } from "framer-motion";
 import GlassCard from "../../components/GlassCard";
-import GuestRecorder from "../../transcription/components/GuestRecorder";
+import GuestMicControls from "../../transcription/components/GuestRecorder";
 import { getMicrophones, selectMicrophone } from "../../transcription/utils/micManager";
 
 const GuestPage: React.FC = () => {
@@ -15,12 +15,11 @@ const GuestPage: React.FC = () => {
   const [micDevices, setMicDevices] = useState<MediaDeviceInfo[]>([]);
   const [selectedMic, setSelectedMic] = useState<string>("");
   const [volumeLevel, setVolumeLevel] = useState(0);
+  const [transcriptions, setTranscriptions] = useState<string[]>([]);
 
   const streamRef = useRef<MediaStream | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
   const scriptNodeRef = useRef<ScriptProcessorNode | null>(null);
-
-  const backendWsUrl = import.meta.env.VITE_BACKEND_WS_URL as string;
 
   useEffect(() => {
     getMicrophones().then((devices) => {
@@ -28,6 +27,19 @@ const GuestPage: React.FC = () => {
       if (devices[0]) handleMicChange(devices[0].deviceId);
     });
   }, []);
+
+  // Restart volume monitoring if it stops working
+  useEffect(() => {
+    const checkVolumeMonitoring = () => {
+      if (streamRef.current && (!audioCtxRef.current || audioCtxRef.current.state === 'closed')) {
+        console.log('[GuestPage] Restarting volume monitoring...');
+        setupAudioAnalysis(streamRef.current);
+      }
+    };
+
+    const interval = setInterval(checkVolumeMonitoring, 2000); // Check every 2 seconds
+    return () => clearInterval(interval);
+  }, [streamRef.current]);
 
   const handleMicChange = async (deviceId: string) => {
     setSelectedMic(deviceId);
@@ -45,27 +57,50 @@ const GuestPage: React.FC = () => {
   };
 
   const setupAudioAnalysis = (stream: MediaStream) => {
-    if (audioCtxRef.current) {
+    console.log('[GuestPage] Setting up audio analysis...');
+
+    // Clean up existing audio context
+    if (audioCtxRef.current && audioCtxRef.current.state !== 'closed') {
       audioCtxRef.current.close();
+    }
+    if (scriptNodeRef.current) {
+      scriptNodeRef.current.disconnect();
     }
 
     const audioContext = new AudioContext({ sampleRate: 16000 });
     const source = audioContext.createMediaStreamSource(stream);
     const processor = audioContext.createScriptProcessor(4096, 1, 1);
 
-processor.onaudioprocess = (e) => {
-  const input = e.inputBuffer.getChannelData(0);
-  const avg = input.reduce((a, b) => a + Math.abs(b), 0) / input.length;
+    console.log('[GuestPage] Audio context and processor created');
 
-  // Amplify for better sensitivity, then ease to 0–100 range
-  const amplified = avg * 300; // increase multiplier as needed
-  const eased = Math.min(100, Math.floor(amplified ** 1.2)); // nonlinear scaling
-  setVolumeLevel(eased);
-};
+    processor.onaudioprocess = (e) => {
+      const input = e.inputBuffer.getChannelData(0);
+      const avg = input.reduce((a, b) => a + Math.abs(b), 0) / input.length;
 
+      // Show volume level even when muted (for visual feedback)
+      if (!isMuted) {
+        // Amplify for better sensitivity, then ease to 0–100 range
+        const amplified = avg * 300; // increase multiplier as needed
+        const eased = Math.min(100, Math.floor(amplified ** 1.2)); // nonlinear scaling
+        setVolumeLevel(eased);
+        if (eased > 5) console.log('[GuestPage] Volume level:', eased);
+      } else {
+        // Show reduced volume when muted but still show some activity
+        const amplified = avg * 100;
+        const eased = Math.min(30, Math.floor(amplified ** 1.2));
+        setVolumeLevel(eased);
+      }
+    };
 
     source.connect(processor);
-    processor.connect(audioContext.destination);
+
+    // Connect to a dummy gain node to enable processing without audio output
+    const gainNode = audioContext.createGain();
+    gainNode.gain.value = 0; // Silent output
+    processor.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+
+    console.log('[GuestPage] Audio nodes connected');
 
     audioCtxRef.current = audioContext;
     scriptNodeRef.current = processor;
@@ -73,10 +108,19 @@ processor.onaudioprocess = (e) => {
 
   const toggleMute = () => {
     if (!streamRef.current) return;
+
+    const newMutedState = !isMuted;
+    setIsMuted(newMutedState);
+
+    // Disable/enable audio tracks
     streamRef.current.getAudioTracks().forEach((track) => {
-      track.enabled = !track.enabled;
+      track.enabled = !newMutedState;
     });
-    setIsMuted((prev) => !prev);
+
+    // Reset volume level when muted
+    if (newMutedState) {
+      setVolumeLevel(0);
+    }
   };
 
   return (
@@ -96,7 +140,13 @@ processor.onaudioprocess = (e) => {
               whileTap={{ scale: 0.95 }}
               onClick={toggleMute}
               disabled={!streamRef.current}
-              className={`flex items-center gap-2 ${isMuted ? "bg-gray-700 hover:bg-gray-600" : "bg-blue-600 hover:bg-blue-700"} text-white px-5 py-2 rounded-lg shadow disabled:opacity-50`}
+              className={`flex items-center gap-2 ${
+                !streamRef.current
+                  ? "bg-gray-600 cursor-not-allowed"
+                  : isMuted
+                    ? "bg-red-600 hover:bg-red-700"
+                    : "bg-blue-600 hover:bg-blue-700"
+              } text-white px-5 py-2 rounded-lg shadow disabled:opacity-50`}
             >
               {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
               {isMuted ? "Unmute" : "Mute"}
@@ -120,25 +170,42 @@ processor.onaudioprocess = (e) => {
 
             {/* Volume Bar */}
             <div className="w-full mt-4 text-sm text-gray-400">
-              Volume Level: {volumeLevel}%
+              Volume Level: {volumeLevel}% {isMuted && "(Muted)"}
               <div className="w-full h-2 bg-gray-600 rounded mt-1 overflow-hidden">
                 <div
-                  className="h-2 bg-green-500 rounded transition-all duration-100 ease-linear"
+                  className={`h-2 rounded transition-all duration-100 ease-linear ${
+                    isMuted ? "bg-red-500" : "bg-green-500"
+                  }`}
                   style={{ width: `${volumeLevel}%` }}
                 />
               </div>
             </div>
 
-            {/* Guest Recorder (optional, keep commented if not needed) */}
-            {/* 
+            {/* Guest Transcription Controls */}
             <div className="mt-6 w-full">
-              <GuestRecorder
+              <GuestMicControls
                 guestId={displayName}
                 meetingId={meetingId}
-                backendWsUrl={`${backendWsUrl}/guest-stream`}
+                isMuted={isMuted}
+                onTranscriptionReceived={(text) => {
+                  setTranscriptions(prev => [...prev.slice(-4), text]);
+                }}
               />
-            </div> 
-            */}
+            </div>
+
+            {/* Real-time Transcriptions Display */}
+            {transcriptions.length > 0 && (
+              <div className="mt-6 w-full">
+                <h3 className="text-lg font-semibold text-white mb-3">Live Transcription</h3>
+                <div className="bg-gray-800/50 rounded-lg p-4 max-h-40 overflow-y-auto">
+                  {transcriptions.map((text, index) => (
+                    <div key={index} className="text-gray-300 text-sm mb-2 last:mb-0">
+                      {text}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </GlassCard>
       </div>
