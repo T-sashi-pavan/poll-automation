@@ -2,7 +2,7 @@ import os
 from faster_whisper import WhisperModel
 
 def load_whisper_model() -> WhisperModel:
-    MODEL_NAME = os.getenv("MODEL", "medium")
+    MODEL_NAME = os.getenv("MODEL", "tiny")
 
     try:
         import torch

@@ -1,184 +1,207 @@
-import React, { useEffect, useRef, useState } from 'react';
-import type { StartMessage } from '@poll-automation/types';
-import {
-  getSelectedMicStream,
-  getMicrophones,
-  selectMicrophone
-} from '../utils/micManager';
+import React, { useRef, useState, useEffect } from 'react';
+import type { StartMessage, ServerToClientMessage } from '@poll-automation/types';
+import { getSelectedMicStream } from '../utils/micManager';
 import { encodeWAV } from '../utils/wavEncoder';
 
-
-interface GuestRecorderProps {
-  guestId: string;
-  meetingId: string;
-  backendWsUrl: string;
-  hostBroadcastSocket: WebSocket;
+// Helper function to merge audio buffers (same as host)
+function mergeBuffers(buffers: Float32Array[]): Float32Array {
+  const totalLength = buffers.reduce((sum, buffer) => sum + buffer.length, 0);
+  const merged = new Float32Array(totalLength);
+  let offset = 0;
+  for (const buffer of buffers) {
+    merged.set(buffer, offset);
+    offset += buffer.length;
+  }
+  return merged;
 }
 
-const GuestRecorder: React.FC<GuestRecorderProps> = ({
+interface GuestMicControlsProps {
+  guestId: string;
+  meetingId: string;
+  onTranscriptionReceived?: (transcription: string) => void;
+  isMuted: boolean; // Receive mute state from parent
+}
+
+const GuestMicControls: React.FC<GuestMicControlsProps> = ({
   guestId,
   meetingId,
-  backendWsUrl,
-  hostBroadcastSocket
+  onTranscriptionReceived,
+  isMuted
 }) => {
   const [isStreaming, setIsStreaming] = useState(false);
-  const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
-  const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
-  const scriptNodeRef = useRef<ScriptProcessorNode | null>(null);
+  const processorRef = useRef<ScriptProcessorNode | null>(null);
   const audioBufferRef = useRef<Float32Array[]>([]);
-  const chunkIntervalRef = useRef<NodeJS.Timeout | null>(null);
-const CHUNK_INTERVAL = parseInt(import.meta.env.VITE_CHUNK_INTERVAL || '30000');
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const isMutedRef = useRef<boolean>(isMuted); // Track mute state in ref
 
+  // Use same chunk interval as host (30 seconds default, minimum 1 second)
+  const CHUNK_INTERVAL = Math.max(
+    1000,
+    parseInt(import.meta.env.VITE_CHUNK_INTERVAL || "30000")
+  );
 
+  // Update mute ref when prop changes
   useEffect(() => {
-    getMicrophones().then((mics) => {
-      setDevices(mics);
-      console.log('[GuestRecorder] Found mics:', mics);
-    });
-  }, []);
+    isMutedRef.current = isMuted;
+  }, [isMuted]);
 
-  useEffect(() => {
-    const onMessage = (event: MessageEvent) => {
-      try {
-        const data = JSON.parse(event.data);
-        if (data.type === 'start') {
-          console.log('[GuestRecorder] Received start broadcast from host');
-          handleStartStreaming();
-        }
-      } catch (err) {
-        console.error('[GuestRecorder] Invalid broadcast message:', err);
-      }
-    };
 
-    hostBroadcastSocket.addEventListener('message', onMessage);
-    return () => {
-      hostBroadcastSocket.removeEventListener('message', onMessage);
-    };
-  }, [hostBroadcastSocket, selectedDeviceId]);
-
-  const handleStartStreaming = async () => {
-    if (!selectedDeviceId) {
-      console.warn('[GuestRecorder] No microphone selected');
-      return;
-    }
-
-    console.log('[GuestRecorder] Starting stream using:', selectedDeviceId);
-
-    await selectMicrophone(selectedDeviceId);
+  const startStreaming = async () => {
     const stream = getSelectedMicStream();
     if (!stream) {
-      console.error('[GuestRecorder] No stream from selected mic');
+      console.error('[GuestMicControls] No microphone stream available');
       return;
     }
 
-    const ws = new WebSocket(backendWsUrl);
+    const ws = new WebSocket(import.meta.env.VITE_BACKEND_WS_URL as string);
     ws.binaryType = 'arraybuffer';
     wsRef.current = ws;
 
     ws.onopen = () => {
-      console.log('[GuestRecorder] WebSocket opened');
+      console.log('[GuestMicControls] WebSocket connected');
+
       const startMessage: StartMessage = {
         type: 'start',
         guestId,
         meetingId
       };
       ws.send(JSON.stringify(startMessage));
-      console.log('[GuestRecorder] Sent start message:', startMessage);
 
       const audioContext = new AudioContext({ sampleRate: 16000 });
       audioContextRef.current = audioContext;
-
       const source = audioContext.createMediaStreamSource(stream);
-      const processor = audioContext.createScriptProcessor(4096, 1, 1);
-      scriptNodeRef.current = processor;
 
-      processor.onaudioprocess = (e) => {
-        const input = e.inputBuffer.getChannelData(0);
-        audioBufferRef.current.push(new Float32Array(input));
-      };
+      const processor = audioContext.createScriptProcessor(4096, 1, 1);
+      processorRef.current = processor;
 
       source.connect(processor);
-      processor.connect(audioContext.destination);
 
-      // flush every 3s
-      chunkIntervalRef.current = setInterval(() => {
-        const allSamples = Float32Array.from(audioBufferRef.current.flat());
-        if (allSamples.length > 0) {
-          const wavBuffer = encodeWAV(allSamples, 16000);
-          ws.send(wavBuffer);
-          console.log('[GuestRecorder] Sent chunk', wavBuffer.byteLength);
-          audioBufferRef.current = [];
-        }
-      },CHUNK_INTERVAL);
+      // Connect to a dummy gain node to enable processing without audio output
+      const gainNode = audioContext.createGain();
+      gainNode.gain.value = 0; // Silent output
+      processor.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+
+      processor.onaudioprocess = (e) => {
+        if (isMutedRef.current) return; // Don't process audio when muted
+
+        const samples = e.inputBuffer.getChannelData(0);
+        // Buffer audio instead of sending immediately (like host)
+        audioBufferRef.current.push(new Float32Array(samples));
+      };
 
       setIsStreaming(true);
+
+      // Start interval-based transmission (like host)
+      intervalRef.current = setInterval(() => {
+        if (audioBufferRef.current.length === 0) return;
+
+        // Don't send audio when muted
+        if (isMutedRef.current) {
+          audioBufferRef.current = []; // Clear buffer when muted
+          return;
+        }
+
+        const merged = mergeBuffers(audioBufferRef.current);
+        const wav = encodeWAV(merged, 16000);
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send(wav);
+        }
+        audioBufferRef.current = []; // Clear buffer after sending
+      }, CHUNK_INTERVAL);
+    };
+
+    ws.onmessage = (event) => {
+      try {
+        const data: ServerToClientMessage = JSON.parse(event.data);
+        if (data.type === 'transcription' && data.text && onTranscriptionReceived) {
+          onTranscriptionReceived(data.text);
+        }
+      } catch (err) {
+        console.error('[GuestMicControls] Error parsing message:', err);
+      }
     };
 
     ws.onerror = (err) => {
-      console.error('[GuestRecorder] WebSocket error:', err);
+      console.error('[GuestMicControls] WebSocket error:', err);
     };
 
     ws.onclose = () => {
-      console.log('[GuestRecorder] WebSocket closed');
-      stopStreaming();
+      console.log('[GuestMicControls] WebSocket closed');
+      setIsStreaming(false);
     };
   };
 //function to stop streaming and send final audio chunk
   const stopStreaming = () => {
-  if (!wsRef.current) return;
+    if (!wsRef.current) return;
 
-  if (audioBufferRef.current.length > 0) {
-    const allSamples = Float32Array.from(audioBufferRef.current.flat());
-    const wavBuffer = encodeWAV(allSamples, 16000);
-    wsRef.current.send(wavBuffer);
-    console.log('[GuestRecorder] Final chunk sent on stop');
-    audioBufferRef.current = [];
-  }
-
-  wsRef.current.send(JSON.stringify({ type: "stop" }));
-  console.log('[GuestRecorder] Sent stop signal');
-
-  wsRef.current.addEventListener("message", (event) => {
-    try {
-      const data = JSON.parse(event.data);
-      if (data.type === "done") {
-        console.log('[GuestRecorder] Done received, closing socket.');
-        wsRef.current?.close();
-        setIsStreaming(false);
+    // Send any remaining buffered audio before stopping
+    if (audioBufferRef.current.length > 0) {
+      const merged = mergeBuffers(audioBufferRef.current);
+      const wav = encodeWAV(merged, 16000);
+      if (wsRef.current.readyState === WebSocket.OPEN) {
+        wsRef.current.send(wav);
       }
-    } catch (_) {}
-  });
-};
+    }
 
+    wsRef.current.send(JSON.stringify({ type: "stop" }));
+    console.log('[GuestMicControls] Sent stop signal');
 
+    // Clean up interval
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+
+    // Clean up audio context
+    if (audioContextRef.current) {
+      audioContextRef.current.close();
+      audioContextRef.current = null;
+    }
+
+    if (processorRef.current) {
+      processorRef.current.disconnect();
+      processorRef.current = null;
+    }
+
+    // Clear audio buffer
+    audioBufferRef.current = [];
+
+    wsRef.current.close();
+    wsRef.current = null;
+    setIsStreaming(false);
+  };
 
   return (
-    <div>
-      <label>Select Microphone:</label>
-      <select
-        value={selectedDeviceId || ''}
-        onChange={(e) => {
-          const id = e.target.value;
-          setSelectedDeviceId(id);
-          console.log('[GuestRecorder] Selected mic:', id);
-        }}
-      >
-        {devices.map((device) => (
-          <option key={device.deviceId} value={device.deviceId}>
-            {device.label || `Mic ${device.deviceId}`}
-          </option>
-        ))}
-      </select>
+    <div className="flex flex-col gap-4">
+      <div className="flex gap-2">
+        <button
+          onClick={startStreaming}
+          disabled={isStreaming}
+          className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-white rounded"
+        >
+          {isStreaming ? 'Recording...' : 'Start Recording'}
+        </button>
 
-      <button onClick={stopStreaming} disabled={!isStreaming}>
-        Stop Streaming
-      </button>
+        <button
+          onClick={stopStreaming}
+          disabled={!isStreaming}
+          className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-gray-600 text-white rounded"
+        >
+          Stop Recording
+        </button>
 
-      {isStreaming && <p>Recording in progress...</p>}
+      </div>
+
+      {isStreaming && (
+        <div className={`text-sm ${isMuted ? 'text-yellow-400' : 'text-green-400'}`}>
+          🎙️ {isMuted ? 'Recording muted...' : 'Recording in progress...'}
+        </div>
+      )}
     </div>
   );
 };
 
-export default GuestRecorder;
+export default GuestMicControls;

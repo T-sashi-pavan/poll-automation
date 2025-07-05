@@ -41,7 +41,12 @@ const HostMicControls: React.FC<HostMicControlsProps> = ({ meetingId, backendWsU
       processorRef.current = processor;
 
       source.connect(processor);
-      processor.connect(audioContext.destination);
+
+      // Connect to a dummy gain node to enable processing without audio output
+      const gainNode = audioContext.createGain();
+      gainNode.gain.value = 0; // Silent output
+      processor.connect(gainNode);
+      gainNode.connect(audioContext.destination);
 
       processor.onaudioprocess = (e) => {
         const samples = e.inputBuffer.getChannelData(0);
