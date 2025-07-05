@@ -335,15 +335,33 @@ const CreatePollPage: React.FC = () => {
   };
 
   // Handle send invites
-  const handleSendInvites = () => {
+  const handleSendInvites = async () => {
     if (students.length === 0) return;
 
     setIsSendingInvites(true);
-    setTimeout(() => {
-      setIsSendingInvites(false);
+    setErrors((prev) => ({ ...prev, csv: undefined }));
+    setInvitesSent(false);
+
+    try {
+      // Replace with your backend endpoint
+      await axios.post("http://localhost:5000/api/invite-students", {
+        roomCode,
+        roomName,
+        students,
+      });
+
       setInvitesSent(true);
-      console.log("Invites sent to:", students);
-    }, 2000);
+      // Optionally show a toast notification here
+    } catch (error) {
+      setErrors((prev) => ({
+        ...prev,
+        csv: "Failed to send invites. Please try again.",
+      }));
+      setInvitesSent(false);
+      // Optionally show a toast notification here
+    } finally {
+      setIsSendingInvites(false);
+    }
   };
 
   // Handle create poll
