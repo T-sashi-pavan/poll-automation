@@ -264,7 +264,7 @@ const PollQuestionsPage: React.FC<PollQuestionsPageProps> = ({
 
       const user = JSON.parse(storedUser);
       const API_URL =
-        import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+        import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 
       // Prepare result data
       const resultData = {
@@ -389,7 +389,7 @@ const PollQuestionsPage: React.FC<PollQuestionsPageProps> = ({
       if (!isComponentMounted) return;
 
       try {
-        const newSocket = io("http://localhost:3001", {
+        const newSocket = io("http://localhost:3000", {
           transports: ["websocket", "polling"],
           timeout: 10000, // Shorter timeout
           forceNew: true,
@@ -433,7 +433,7 @@ const PollQuestionsPage: React.FC<PollQuestionsPageProps> = ({
               if (isComponentMounted) {
                 connectSocket();
               }
-            }, 5000);
+            }, 3000);
           } else {
             console.log(
               "Max connection attempts reached. Real-time features disabled."

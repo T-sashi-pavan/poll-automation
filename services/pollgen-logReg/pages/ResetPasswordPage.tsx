@@ -19,7 +19,7 @@ const ResetPasswordPage: React.FC = () => {
         }
         const loadingToast = toast.loading('Resetting password...');
         try {
-            const { data } = await axios.post(`http://localhost:5000/api/auth/reset-password/${token}`, { password });
+            const { data } = await axios.post(`http://localhost:3000/api/auth/reset-password/${token}`, { password });
             toast.success(data.message, { id: loadingToast });
             navigate('/login');
         } catch (error: any) {
