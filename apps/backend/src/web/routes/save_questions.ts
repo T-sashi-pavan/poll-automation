@@ -5,15 +5,15 @@ const router = Router();
 const mongoURL = "mongodb://localhost:27017";
 const client = new MongoClient(mongoURL);
 
-router.post("/save_questions", async (req, res) => {
+router.post("/save_manual_poll", async (req, res) => {
   const data = req.body;
 
   try {
     await client.connect();
     const db = client.db("polls");
-    const collection = db.collection("questions");
+    const collection = db.collection("manual_poll_questions");
 
-    await collection.insertMany(data);
+    await collection.insertOne(data);
     res.json({ message: "Questions saved to DB" });
   } catch (err) {
     console.error(err);
