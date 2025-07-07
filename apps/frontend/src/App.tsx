@@ -80,7 +80,7 @@ function App() {
                 {/* Student Routes with nested layout */}
                 <Route path="/student" element={<StudentDashboard />}>
                   <Route index element={<DashboardHomePage />} />
-                  <Route path="join" element={<JoinPollPage />} />
+                  <Route path="join-poll" element={<JoinPollPage />} />
                   <Route path="history" element={<PollHistoryPage />} />
                   <Route path="poll-questions" element={<PollQuestionsPage roomCode="" />} />
                   <Route path="profile" element={<StudentProfilePage />} />
