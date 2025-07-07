@@ -73,7 +73,7 @@ The connections store is used by the WebSocket server (`src/websocket/connection
 
 ### Example Workflow
 
-1. A client connects to the WebSocket server (`ws://localhost:3000`).
+1. A client connects to the WebSocket server (`ws://localhost:3001`).
 2. The client sends a `ConnectionMessage` to register with a `meetingId`, `speakerId`, and `role`.
 3. The server calls `addConnection(ws, meetingId, speakerId, role)` to store the client.
 4. When an `AudioChunkMessage` is received, the server forwards it to Faster Whisper (`ws://localhost:8000/transcribe`).

@@ -178,14 +178,14 @@ ollama list
 ### `apps/backend/.env`
 
 ```
-PORT=3000
+PORT=3001
 WHISPER_WS_URL=ws://localhost:8000
 ```
 
 ### `apps/frontend/.env`
 
 ```
-VITE_BACKEND_WS_URL=ws://localhost:3000
+VITE_BACKEND_WS_URL=ws://localhost:3001
 ```
 
 ### `services/whisper/.env`
@@ -240,7 +240,7 @@ pnpm dev
 This starts:
 
 * ✅ *Frontend* → [http://localhost:5173](http://localhost:5173)
-* ✅ *Backend (WebSocket server)* → ws\://localhost:3000
+* ✅ *Backend (WebSocket server)* → ws\://localhost:3001
 * ✅ *Whisper Transcription Service* → ws\://localhost:8000 (Python FastAPI)
 
 > Make sure the Python environment is set up correctly (faster-whisper, uvicorn, etc.)

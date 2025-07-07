@@ -157,7 +157,7 @@ const CreateManualPoll = () => {
         shortAnswerPlaceholder: "",
       });
       setErrors({});
-    }, 3000);
+    }, 3001);
   } catch (err) {
     console.error("❌ Error submitting poll:", err);
     alert("Failed to submit poll");

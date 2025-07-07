@@ -2,7 +2,7 @@
 // Use the shared TranscriptionResult type for consistency
 import type { TranscriptionResult, StartMessage, EndMessage } from '../../../../shared/types/src/websocket'; // Adjust path
 
-const WS_URL = import.meta.env.VITE_BACKEND_WS_URL || "ws://localhost:3000";
+const WS_URL = import.meta.env.VITE_BACKEND_WS_URL || "ws://localhost:3001";
 
 const UPLOAD_CHUNK_BYTE_SIZE = 4096; // Define your desired chunk size in BYTES (e.g., 4KB)
 

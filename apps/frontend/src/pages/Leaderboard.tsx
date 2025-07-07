@@ -19,7 +19,7 @@ const Leaderboard = () => {
 
   useEffect(() => {
     // Connect to the Socket.IO server
-    const newSocket = io("http://localhost:3000", {
+    const newSocket = io("http://localhost:3001", {
       transports: ["websocket", "polling"],
     });
 

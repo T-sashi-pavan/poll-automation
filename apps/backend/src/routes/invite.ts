@@ -22,15 +22,15 @@ router.post("/invite-students", async (req: Request, res: Response): Promise<any
   try {
     for (const student of students) {
       await transporter.sendMail({
-        from: process.env.SENDER_EMAIL,
-  
+        from: `Poll Generation Team <${process.env.SENDER_EMAIL}>`,
         to: student.email,
-        subject: `Invitation to join poll: ${roomName || roomCode}`,
-        html: `<p>Hello${student.name ? ` ${student.name}` : ""},<br>
-          You are invited to join the poll session.<br>
-          <b>Room Code:</b> ${roomCode}<br>
-          <a href="${process.env.FRONTEND_URL}/join?room=${roomCode}">Join Poll</a>
-        </p>`,
+        subject: `You're invited to join a poll: ${roomName || roomCode}`,
+        html: `<p>Hello${student.name ? ` ${student.name}` : ""},</p>
+               <p>You have been invited to participate in a poll session.</p>
+               <p><b>Room Name:</b> ${roomName || "Untitled"}<br>
+               <b>Room Code:</b> ${roomCode}</p>
+               <p>Please use the above room code to join the poll session in the PollGen platform.</p>
+               <p>Best regards,<br/>Poll Generation Team</p>`,
       });
     }
     res.json({ success: true });

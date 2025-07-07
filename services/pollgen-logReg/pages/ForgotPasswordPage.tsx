@@ -12,7 +12,7 @@ const ForgotPasswordPage: React.FC = () => {
         setMessage('');
         const loadingToast = toast.loading('Sending reset link...');
         try {
-            const { data } = await axios.post('http://localhost:3000/api/auth/forgot-password', { email });
+            const { data } = await axios.post('http://localhost:3001/api/auth/forgot-password', { email });
             toast.success('Request sent successfully.', { id: loadingToast });
             setMessage(data.message);
         } catch (error: any) {

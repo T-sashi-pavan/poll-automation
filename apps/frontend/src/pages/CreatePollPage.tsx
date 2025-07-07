@@ -127,7 +127,7 @@ const CreatePollPage: React.FC = () => {
         console.log("Deleting poll with room code:", storedRoomCode);
 
         const response = await axios.delete(
-          `http://localhost:3000/api/room-code/polls/${storedRoomCode}`
+          `http://localhost:3001/api/room-code/polls/${storedRoomCode}`
         );
 
         console.log("Poll deleted successfully:", response.data);
@@ -344,7 +344,7 @@ const CreatePollPage: React.FC = () => {
 
     try {
       // Replace with your backend endpoint
-      await axios.post("http://localhost:3000/api/invite-students", {
+      await axios.post("http://localhost:3001/api/invite-students", {
         roomCode,
         roomName,
         students,
@@ -388,7 +388,7 @@ const CreatePollPage: React.FC = () => {
       }
 
       const response = await axios.post(
-        "http://localhost:3000/api/room-code/polls",
+        "http://localhost:3001/api/room-code/polls",
         {
           room_code: roomCode,
           room_title: roomName, // Changed from room_name to room_title to match backend

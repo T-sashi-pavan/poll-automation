@@ -20,7 +20,7 @@ const app = express();
 
 app.use(
   cors({
-    origin: ['http://localhost:5173', 'http://localhost:3000'], // Added multiple origins
+    origin: ['http://localhost:5173', 'http://localhost:3001'], // Added multiple origins
     credentials: true,
   })
 );

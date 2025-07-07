@@ -70,7 +70,7 @@ const AudioCapture = () => {
   //       const randomText = mockTranscriptions[Math.floor(Math.random() * mockTranscriptions.length)];
   //       setTranscription(prev => prev + " " + randomText);
   //       setConfidence(Math.random() * 30 + 70); // 70-100% confidence
-  //     }, 3000);
+  //     }, 3001);
 
   //     return () => clearInterval(interval);
   //   }

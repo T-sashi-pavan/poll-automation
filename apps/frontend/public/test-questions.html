@@ -161,7 +161,7 @@
         try {
           showStatus("Fetching questions from backend...", "info");
 
-          const response = await fetch("http://localhost:3000/api/questions");
+          const response = await fetch("http://localhost:3001/api/questions");
           if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
           }

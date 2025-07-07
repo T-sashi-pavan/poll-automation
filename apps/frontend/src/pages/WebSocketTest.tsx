@@ -7,7 +7,7 @@ const WebSocketTest = () => {
 
   useEffect(() => {
     // Connect to the Socket.IO server
-    const newSocket = io("http://localhost:3000", {
+    const newSocket = io("http://localhost:3001", {
       transports: ["websocket", "polling"],
     });
 
@@ -45,7 +45,7 @@ const WebSocketTest = () => {
   const triggerPoll = async () => {
     try {
       const response = await fetch(
-        "http://localhost:3000/api/polls/test-send",
+        "http://localhost:3001/api/polls/test-send",
         {
           method: "POST",
           headers: {

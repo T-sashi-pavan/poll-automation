@@ -42,8 +42,12 @@ export const register = async (req: Request, res: Response) => {
 
     // Try to send welcome email, but don't fail registration if email fails
     try {
-      const subject = 'Welcome to Automatic Poll Generation System';
-      const html = `<p>Dear ${user.fullName},</p><p>Welcome to Automatic Poll Generation System. We are excited to have you on board!</p>`;
+      const subject = 'Welcome to PollGen!';
+      const html = `<p>Dear ${user.fullName},</p>
+                    <p>Welcome to <b>PollGen</b>! Your account has been created successfully.</p>
+                    <p>You can now join or create polls, participate in sessions, and track your progress.</p>
+                    <p>We’re excited to have you on board!</p>
+                    <p>Best regards,<br/>Poll Generation Team</p>`;
       await sendEmail(user.email, subject, html);
       console.log('✅ Welcome email sent successfully');
     } catch (emailError) {
