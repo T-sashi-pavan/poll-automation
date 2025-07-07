@@ -18,7 +18,7 @@ const server = http.createServer(app);
 app.use(cors());
 app.use(express.json());
 app.use('/settings', settingsRouter);
-app.use('/questions', saveQuestionsRouter);
+app.use('/manual_poll_questions', saveQuestionsRouter);
 app.use('/api/poll', pollConfigRoutes);
 
 app.get('/', (_req, res) => {
