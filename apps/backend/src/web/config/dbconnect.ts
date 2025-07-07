@@ -4,7 +4,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 export const config = {
-  port: process.env.PORT || 5000,
+  port: process.env.PORT || 3001,
   mongoUri: process.env.MONGO_URI || 'mongodb+srv://devuser1:test1234@cluster0.g6xtlxf.mongodb.net/auth_db?retryWrites=true&w=majority&appName=Cluster0',
 };
 

@@ -23,7 +23,7 @@ import { useTheme } from "../contexts/ThemeContext";
 const Settings = () => {
   const { isDarkMode, toggleDarkMode, accentColor, setAccentColor } =
     useTheme();
-  const api = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+  const api = import.meta.env.VITE_API_URL || "http://localhost:3001/api";
   // Profile Settings
   const [profileData, setProfileData] = useState({
     firstName: "John",
@@ -201,7 +201,7 @@ const Settings = () => {
       const formData = new FormData();
       formData.append("avatar", file);
 
-      const res = await fetch("http://localhost:5000/users/avatar", {
+      const res = await fetch("http://localhost:3001/users/avatar", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -214,7 +214,7 @@ const Settings = () => {
       const data = await res.json();
       setProfileData((prev) => ({
         ...prev,
-        avatar: `http://localhost:5000${data.avatar}`,
+        avatar: `http://localhost:3001${data.avatar}`,
       }));
     } catch (err) {
       console.error("Error uploading avatar:", err);

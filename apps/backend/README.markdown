@@ -102,7 +102,7 @@ apps/backend/
 Create a `.env` file in `apps/backend` (ignored by `.gitignore`):
 
 ```env
-PORT=3000
+PORT=3001
 WHISPER_API_URL=http://localhost:8000/transcribe
 ```
 

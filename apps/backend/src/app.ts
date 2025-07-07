@@ -12,6 +12,7 @@ import { errorHandler } from './middlewares/error.middleware';
 import path from 'path';
 import pollConfigRoutes from './web/routes/pollConfigRoutes';
 import pollRoomCodeRoutes from './web/routes/pollRoomCodeRoutes';
+import inviteRouter from './routes/invite'; // <-- Add this import
 
 dotenv.config();
 
@@ -19,7 +20,7 @@ const app = express();
 
 app.use(
   cors({
-    origin: ['http://localhost:5173', 'http://localhost:3000'], // Added multiple origins
+    origin: ['http://localhost:5173', 'http://localhost:3001'], // Added multiple origins
     credentials: true,
   })
 );
@@ -41,6 +42,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/polls', pollRoutes);
 app.use('/api/questions', questionRoutes);
 app.use('/api/results', resultRoutes);
+app.use('/api', inviteRouter); // <-- Add this line after your other app.use() calls
 
 app.use(errorHandler);
 

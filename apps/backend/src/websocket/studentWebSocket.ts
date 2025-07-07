@@ -7,7 +7,7 @@ let io: Server;
 export const initializeStudentSocket = (server: any) => {
   io = new Server(server, {
     cors: {
-      origin: ['http://localhost:5173', 'http://localhost:3000'], // Add frontend URLs
+      origin: ['http://localhost:5173', 'http://localhost:3001'], // Add frontend URLs
       methods: ['GET', 'POST'],
       credentials: true,
     },

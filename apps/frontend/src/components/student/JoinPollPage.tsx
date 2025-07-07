@@ -1,15 +1,23 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Hash, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import axios from "axios";
 
 const JoinPollPage: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [roomCode, setRoomCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [isValidating, setIsValidating] = useState(false);
-  const [roomInfo, setRoomInfo] = useState<any>(null);
+  type RoomInfo = {
+    title: string;
+    host: string;
+    participants: number;
+    timeRemaining: string;
+    status: string;
+  };
+  const [roomInfo, setRoomInfo] = useState<RoomInfo | null>(null);
   const [error, setError] = useState("");
   const [hasAttemptedJoin, setHasAttemptedJoin] = useState(false);
   const [joinStatus, setJoinStatus] = useState<"idle" | "success" | "error">(
@@ -77,7 +85,7 @@ const JoinPollPage: React.FC = () => {
         // Don't set error here, just clear room info
         setRoomInfo(null);
       }
-    } catch (err) {
+    } catch{
       // Don't set error here, just clear room info
       setRoomInfo(null);
     } finally {
@@ -165,7 +173,7 @@ const JoinPollPage: React.FC = () => {
                 "🔧 Service temporarily unavailable. Please try again later."
               );
               break;
-            default:
+            default: {
               const errorMsg =
                 err.response.data?.message || err.response.data?.error;
               if (errorMsg) {
@@ -173,6 +181,7 @@ const JoinPollPage: React.FC = () => {
               } else {
                 setError("❌ Failed to join the poll. Please try again.");
               }
+            }
           }
         } else if (err.request) {
           setError(
@@ -194,6 +203,27 @@ const JoinPollPage: React.FC = () => {
       handleJoinPoll();
     }
   };
+
+  // Add this useEffect:
+  React.useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const roomParam = params.get("room");
+    if (roomParam) {
+      // Format as ABC-123
+      const formatted = formatRoomCode(roomParam);
+      setRoomCode(formatted);
+      setError("");
+      setRoomInfo(null);
+      setJoinStatus("idle");
+      setHasAttemptedJoin(false);
+
+      // Optionally, auto-join:
+      setTimeout(() => {
+        handleJoinPoll();
+      }, 500); // slight delay to allow state to update
+    }
+    // eslint-disable-next-line
+  }, [location.search]);
 
   return (
     <>

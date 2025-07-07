@@ -41,7 +41,7 @@ type BackendMessage = TranscriptionResult | StatusMessage | PongMessage | Unknow
 
 
 // --- Configuration ---
-const BACKEND_URL: string = 'ws://localhost:3000';
+const BACKEND_URL: string = 'ws://localhost:3001';
 const AUDIO_FILE_PATH: string = path.join(__dirname, 'test-audio.wav'); // __dirname works fine in Node.js TypeScript
 const CHUNK_SIZE: number = 4096; // Adjust chunk size (e.g., 4KB)
 const MEETING_ID: string = 'stream-meeting-456';

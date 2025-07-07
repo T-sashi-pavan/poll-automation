@@ -121,7 +121,7 @@ const RealTimeDataDemo = () => {
           if (connectionAttempts < 5) {
             connectSocket();
           }
-        }, 5000);
+        }, 3001);
       });
 
       newSocket.on("disconnect", () => {
@@ -159,7 +159,7 @@ const RealTimeDataDemo = () => {
             newSet.delete(change.data._id);
             return newSet;
           });
-        }, 5000); // Longer highlight duration
+        }, 3001); // Longer highlight duration
 
         addRecentChange(change);
         setLastActivity(new Date());
@@ -260,7 +260,7 @@ const RealTimeDataDemo = () => {
     // Auto-remove toast after 3 seconds
     setTimeout(() => {
       setToasts((prev) => prev.filter((toast) => toast.id !== id));
-    }, 3000);
+    }, 3001);
   };
 
   const playNotificationSound = () => {

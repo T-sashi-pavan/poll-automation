@@ -3,7 +3,7 @@ import fs from 'fs';
 import path from 'path';
 
 // --- Configuration ---
-const BACKEND_URL = 'ws://localhost:3000';
+const BACKEND_URL = 'ws://localhost:3001';
 const AUDIO_FILE_PATH = path.join(__dirname, 'test-audio.wav'); // __dirname works in CommonJS
 // -------------------
 

@@ -12,7 +12,7 @@ import type {
   EndMessage,
 } from "../../../../shared/types/src/websocket.js"; // Ensure StartMessage and EndMessage are imported
 
-const WS_URL = import.meta.env.VITE_BACKEND_WS_URL || "ws://localhost:3000";
+const WS_URL = import.meta.env.VITE_BACKEND_WS_URL || "ws://localhost:3001";
 const TARGET_SAMPLE_RATE = 16000; // Target sample rate for Whisper model
 const SCRIPT_PROCESSOR_BUFFER_SIZE = 4096; // Buffer size in SAMPLES for ScriptProcessorNode (2^n, e.g., 2048, 4096, 8192, 16384)
 
@@ -182,7 +182,7 @@ export class MicrophoneStreamer {
       if (event.code !== 1000 && !this.stoppingManually) {
         console.log("[Frontend WS] Auto-reconnecting in 3 seconds...");
         // Set a timeout to attempt reconnection
-        this.reconnectTimeout = setTimeout(this.attemptConnectWebSocket, 3000);
+        this.reconnectTimeout = setTimeout(this.attemptConnectWebSocket, 3001);
       } else {
         // If it was a normal closure or manual stop, signal end of stream
         this.onStreamEnd();

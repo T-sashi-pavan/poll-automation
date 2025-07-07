@@ -18,7 +18,7 @@ const LiveTranscriptionComponent: React.FC = () => {
 
     const sendTranscriptToServer = async (text: string) => {
     try {
-        const response = await fetch('http://localhost:3000/api/realtime', {
+        const response = await fetch('http://localhost:3001/api/realtime', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
