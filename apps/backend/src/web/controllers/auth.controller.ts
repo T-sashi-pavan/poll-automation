@@ -3,7 +3,6 @@ import { User } from '../models/user.model';
 import bcrypt from 'bcryptjs';
 import { signToken } from '../utils/jwt';
 import crypto from 'crypto';
-import nodemailer from 'nodemailer';
 import { sendResetEmail } from '../utils/email';
 import { sendEmail } from '../utils/email';
 
@@ -23,7 +22,7 @@ class AuthenticationError extends Error {
 
 export const register = async (req: Request, res: Response) => {
   try {
-    const { fullName, email, password, role } = req.body;
+    const {  email, password } = req.body;
     const existing = await User.findOne({ email });
     if (existing) {
       throw new ValidationError('Email already exists');

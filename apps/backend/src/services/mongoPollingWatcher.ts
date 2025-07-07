@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 import { getSocketInstance } from '../websocket/studentWebSocket';
-import Question from '../models/question.model';
+import Question from '../web/models/question.model';
 
 interface DocumentCount {
   questions: number;

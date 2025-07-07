@@ -1,5 +1,5 @@
 import { Server } from 'socket.io';
-import Question from '../models/question.model';
+import Question from '../web/models/question.model';
 // import HostSettings from '../models/HostSettings';
 
 let io: Server;
