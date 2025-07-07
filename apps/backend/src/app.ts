@@ -1,18 +1,18 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import authRoutes from './routes/auth.routes';
-import userRoutes from './routes/user.routes';
+import authRoutes from './web/routes/auth.routes';
+import userRoutes from './web/routes/user.routes';
 import pollRoutes from './routes/poll.routes';
-import questionRoutes from './routes/question.routes';
-import resultRoutes from './routes/result.routes';
+import questionRoutes from './web/routes/question.routes';
+import resultRoutes from './web/routes/result.routes';
 import saveQuestionsRouter from './web/routes/save_questions';
 import settingsRouter from './web/routes/settings';
-import { errorHandler } from './middlewares/error.middleware';
+import { errorHandler } from './web/middlewares/error.middleware';
 import path from 'path';
 import pollConfigRoutes from './web/routes/pollConfigRoutes';
 import pollRoomCodeRoutes from './web/routes/pollRoomCodeRoutes';
-import inviteRouter from './routes/invite'; // <-- Add this import
+import inviteRouter from './web/routes/invite'; // <-- Add this import
 
 dotenv.config();
 

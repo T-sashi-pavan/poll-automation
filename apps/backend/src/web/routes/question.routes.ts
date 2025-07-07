@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import Question from '../models/question.model';
-import { mongoPollingWatcher } from '../services/mongoPollingWatcher';
+import { mongoPollingWatcher } from '../../services/mongoPollingWatcher';
 
 const router = Router();
 

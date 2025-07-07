@@ -4,7 +4,7 @@ dotenv.config();
 
 import { setupWebSocketServer } from './websocket/connection';
 import app from './app';
-import connectDB from './config/db';
+import connectDB from './web/config/db';
 import http from 'http';
 import { initializeStudentSocket } from './websocket/studentWebSocket';
 import { mongoPollingWatcher } from './services/mongoPollingWatcher';
