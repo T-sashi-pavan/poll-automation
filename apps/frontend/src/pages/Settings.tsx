@@ -71,7 +71,7 @@ const Settings = () => {
 
     // Audio Settings
     selectedMicrophone: 'default',
-    microphoneVolume: 75,
+    microphoneVolume: 100,
     enableAudioFeedback: true,
 
     // Theme Settings

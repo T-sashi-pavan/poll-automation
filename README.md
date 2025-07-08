@@ -1,6 +1,8 @@
+
+
 # Poll Automation App
 
-Poll Automation App is a standalone, open-source web application designed to intelligently generate and manage live polls in real-time during lectures, webinars, or meetings — without being tied to any specific video conferencing platform.
+Poll Automation App is a standalone, open-source web application designed to intelligently generate and manage live polls in real-time during lectures, webinars, or meetings—without being tied to any specific video conferencing platform.
 
 ## ⚙️ Project Pipeline
 
@@ -11,45 +13,55 @@ Poll Automation App is a standalone, open-source web application designed to int
 ```
 poll-automation/
 ├── apps/
-│   ├── backend/                  # Express + WebSocket backend
+│   ├── backend/                    # Node.js + Express backend
 │   │   ├── src/
-│   │   │   ├── transcription/    # Whisper routing + service logic
-│   │   │   ├── websocket/        # WS handlers and connections
-│   │   │   └── index.ts          # Server entry point
+│   │   │   ├── services/           # LLM forwarding, WebSocket handling
+│   │   │   ├── web/                # REST API routes, controllers, models
+│   │   │   └── ws/                 # WebSocket server for audio streaming
+│   │   ├── .env                    # Backend environment variables
 │   │   └── package.json
-│   └── frontend/                 # Vite + React + TypeScript frontend
-│       ├── src/
-│       │   ├── components/       # Reusable UI components
-│       │   ├── utils/            # Microphone & upload logic
-│       │   └── main.tsx         # App entry point
-│       └── package.json
+│   ├── frontend/                   # React + TypeScript + Vite frontend
+│   │   ├── src/
+│   │   │   ├── components/         # Reusable UI components
+│   │   │   ├── pages/              # Page components (e.g., AudioCapture, GuestPage)
+│   │   │   ├── transcription/      # Audio recording and transcription utils
+│   │   │   └── contexts/           # React context for auth, theme, loading
+│   │   ├── .env                    # Frontend environment variables
+│   │   └── package.json
 ├── services/
-│   ├── whisper/                  # Python transcription service (Faster-Whisper)
-│   │   ├── main.py
-│   │   ├── requirements.txt
-│   │   └── whisper-env/         # Virtual environment (local only)
-│   ├── pollgen-llm/              # LLM-based poll generation (local/API)
-│   │   ├── main.py
-│   │   ├── server.py             # FastAPI backend for poll generation
-│   │   └── vector.py             # Embedding-based logic
-│   └── pollgen-gemini/           # Gemini API-based poll generation
-│       ├── gemini.py
-│       └── chunker.py
+│   ├── whisper/                    # Python FastAPI Whisper transcription service
+│   │   ├── src/
+│   │   │   ├── utils/              # Whisper model loader
+│   │   │   └── websocket/          # WebSocket handler for transcription
+│   │   ├── .env                    # Whisper service environment variables
+│   │   └── requirements.txt
+│   ├── pollgen-llm/                # Python FastAPI LLM service for poll generation
+│   │   ├── sample_transcripts/     # Sample transcript data
+│   │   ├── .env                    # LLM service environment variables
+│   │   └── requirements.txt
 ├── shared/
-│   ├── types/                    # Shared types/interfaces (TypeScript)
-│   └── utils/                    # Shared audio utilities
-├── .github/
-│   └── workflows/                # GitHub Actions (CI/CD)
-├── package.json                  # Root config with workspaces
-├── turbo.json                    # Turborepo config
-├── pnpm-workspace.yaml           # Defines all workspace packages
-├── .gitignore
-├── README.md
+│   └── types/                      # Shared TypeScript types
+├── .gitignore                      # Git ignore rules
+├── package.json                    # Monorepo package configuration
+├── pnpm-workspace.yaml             # pnpm workspace configuration
+├── turbo.json                      # Turborepo configuration
+└── README.md                       # This file
 ```
 
 ## 🚀 Getting Started
 
+### 🔧 Prerequisites
+
+- **Node.js**: v18 or higher
+- **pnpm**: v8 or higher (`npm install -g pnpm`)
+- **Turborepo**: Install globally (`pnpm add -g turbo`)
+- **Python**: 3.9 or higher
+- **MongoDB**: Running locally on `mongodb://localhost:27017`
+- **Ollama**: For local LLM support (optional)
+
 ### 🔧 Python Environment Setup
+
+#### Whisper Service
 
 1. **Navigate to the Whisper service folder:**
 
@@ -69,41 +81,30 @@ python3 -m venv whisper-env
 source whisper-env/bin/activate
 ```
 
-3.1 **For CPU-only**
+3. **Install dependencies:**
+
+   - **For CPU-only:**
 
 ```bash
 pip install --upgrade pip
 pip install -r requirements.txt
-````
+```
 
-This installs everything except large GPU-related packages like `torch`.
-Useful for quickly running the backend in **CPU mode** for testing or development.
-
-
-3.2 **⚡ For GPU support (CUDA 12.1)**
-
-If you have a CUDA-enabled GPU and want to use GPU acceleration:
+   - **For GPU support (CUDA 12.1):**
 
 ```bash
 pip install -r requirements.gpu.txt --extra-index-url https://download.pytorch.org/whl/cu121
 ```
 
-This will install `torch`, `torchaudio`, and `torchvision` with CUDA 12.1 support.
-Make sure your system has the correct CUDA runtime installed.
+#### Pollgen-LLM Service
 
------
-
-### 🔧 `pollgen-llm` Environment Setup
-
-1. **Navigate to the Pollgen-llm service folder:**
+1. **Navigate to the Pollgen-LLM service folder:**
 
 ```bash
 cd services/pollgen-llm
-
 ```
 
-2.  **Create and activate a Python virtual environment:**
-    
+2. **Create and activate a Python virtual environment:**
 
 ```bash
 # Windows
@@ -113,159 +114,203 @@ pollgenenv\Scripts\activate
 # macOS/Linux
 python3 -m venv pollgenenv
 source pollgenenv/bin/activate
-
 ```
 
-3.  **Install the required dependencies:**
-    
+3. **Install dependencies:**
 
 ```bash
 pip install -r requirements.txt
-
 ```
+
 ### 🔑 Setting up Gemini API Key
 
-1.  Go to the official Gemini developer page: [https://ai.google.dev/](https://ai.google.dev/)
-    
-2.  Sign in with your Google account and click **“Get API key”**
-    
-3.  Copy the API key and paste it into your `.env` file for `pollgen-llm` as:
-    
+1. Visit [https://ai.google.dev/](https://ai.google.dev/) and sign in with your Google account.
+2. Click **“Get API key”** and copy the key.
+3. Add it to `services/pollgen-llm/.env`:
 
 ```env
 GEMINI_API_KEY=<your key>
-
 ```
-
 
 ### 🧠 Setting up Local LLM (Ollama)
 
-1.  **Download and Install Ollama**
-    
-    -   Visit [https://ollama.com](https://ollama.com/) and download the installer.
-        
-    -   Follow the setup wizard to complete installation.
-     >**Once installed, Ollama will run as a background service and can be accessed via the Command Prompt (cmd) or PowerShell.**
-        
-2.  **Verify Ollama Installation**
-    
+1. **Download and Install Ollama:**
+
+   - Visit [https://ollama.com](https://ollama.com/) and download the installer.
+   - Follow the setup wizard to complete installation.
+
+2. **Verify Ollama Installation:**
 
 ```bash
 ollama --version
-
 ```
 
-3.  **Pull Required Models**
-    
+3. **Pull Required Models:**
 
 ```bash
 ollama pull llama3.2
 ollama pull mxbai-embed-large
-
 ```
 
-4.  **(Optional) Confirm Model Names**
-    
+4. **Confirm Model Names:**
 
 ```bash
 ollama list
-
 ```
 
+### 🔧 .env Configuration
 
-## 🔧 .env Configuration
+#### `apps/backend/.env`
 
-### `apps/backend/.env`
-
-```
+```env
 PORT=3000
 WHISPER_WS_URL=ws://localhost:8000
+MONGO_URI=mongodb://localhost:27017
+LLM_FORWARD_URL=ws://localhost:5001/ws/llm
 ```
 
-### `apps/frontend/.env`
+#### `apps/frontend/.env`
 
-```
+```env
 VITE_BACKEND_WS_URL=ws://localhost:3000
+VITE_BACKEND_WS_URL_GUEST=ws://localhost:3000
+VITE_CHUNK_INTERVAL=30000
 ```
 
-### `services/whisper/.env`
+#### `services/whisper/.env`
 
-```
-# Configuration for the Whisper Service
+```env
 WHISPER_MODEL_SIZE=small
 BUFFER_DURATION_SECONDS=60
-# Port for the Whisper service
 WHISPER_SERVICE_PORT=8000
-
-# -------------------------------------------
-# Available Faster-Whisper model sizes:
-# 
-# 1. tiny
-# 2. base
-# 3. small
-# 4. medium
-# 5. large-v1
-# 6. large-v2
-# 7. large-v3
 ```
-### `services/pollgen-llm/.env`
 
+Available Whisper model sizes: `tiny`, `base`, `small`, `medium`, `large-v1`, `large-v2`, `large-v3`.
+
+#### `services/pollgen-llm/.env`
+
+```env
+GEMINI_API_KEY=<your Gemini API key>
+MONGO_URI=mongodb://localhost:27017
+HOME=<your home directory, e.g., "C:\Users\YourUsername">
 ```
-GEMINI_API_KEY=<Add your Gemini API>
-MONGO_URI="mongodb://localhost:27017"
-HOME="<Add your Home Directory where you have installed the Ollama>"
-#Example: "C:\Users\keerthana"
 
-```
-### Global Prerequisites
-**Navigate to the root directory:**
+### 🛠️ Monorepo Setup
 
-Install `pnpm` and `turbo` globally (once):
+1. **Install global dependencies:**
 
 ```bash
 npm install -g pnpm
 pnpm add -g turbo
 ```
-### 1. Install dependencies
+
+2. **Install project dependencies:**
 
 ```bash
 pnpm install
 ```
 
-### 2. Start all dev servers
+3. **Start all development servers:**
 
 ```bash
 pnpm dev
 ```
+
 This starts:
+- ✅ *Frontend*: [http://localhost:5173](http://localhost:5173)
+- ✅ *Backend (WebSocket server)*: ws://localhost:3000
+- ✅ *Whisper Transcription Service*: ws://localhost:8000
+- ✅ *Pollgen-LLM Service*: ws://localhost:5001/ws/llm
 
-* ✅ *Frontend* → [http://localhost:5173](http://localhost:5173)
-* ✅ *Backend (WebSocket server)* → ws\://localhost:3000
-* ✅ *Whisper Transcription Service* → ws\://localhost:8000 (Python FastAPI)
+> Ensure Python environments for `whisper` and `pollgen-llm` are activated.
 
-> Make sure the Python environment is set up correctly (faster-whisper, uvicorn, etc.)
+### 🛆 Using Turborepo
 
-## 🛆 Using Turborepo
+- `pnpm build`: Build all apps/services
+- `pnpm lint`: Lint all projects
+- `pnpm test`: Run tests
+- `turbo run <task>`: Run any task across monorepo
 
-* `pnpm build` → Build all apps/services
-* `pnpm lint` → Lint all projects
-* `pnpm test` → Run tests
-* `turbo run <task>` → Run any task across monorepo
+## 🗣️ Phase 1 – Transcription Pipeline
 
+The real-time transcription flow:
+1. **Frontend** captures audio via `AudioCapture.tsx` or `GuestPage.tsx`, sending `.wav` chunks over WebSocket.
+2. **Backend** WebSocket server (`ws-server.ts`) forwards audio to the Whisper service.
+3. **Whisper Service** processes audio using Faster-Whisper, returning JSON transcriptions.
+4. **Backend** forwards transcriptions to `pollgen-llm` for poll generation or back to the frontend for display.
 
-## 🗣 Phase 1 – Transcription Pipeline
+> Transcriptions are displayed in real-time on `AudioCapture` and `GuestPage` via `LiveTranscriptFeed.tsx`.
 
-> This outlines the current real-time transcription flow:
+## 🧠 Phase 2 – LLM-based Poll Generation
 
-1. **Frontend** records or selects a `.wav` file and sends it over WebSocket (binary + metadata).
-2. **Backend** WebSocket server receives and forwards it to the Whisper service.
-3. **Whisper Service** processes audio using Faster-Whisper and returns transcription in JSON.
-4. **Backend** sends transcription JSON back to the frontend or passes it to the LLM service.
+The poll generation flow:
+1. **Backend** buffers transcriptions (`llm-forwarder.ts`) and sends chunks to `pollgen-llm` via WebSocket.
+2. **Pollgen-LLM** uses Gemini or Ollama to generate poll questions based on transcript text and settings (e.g., question type, frequency).
+3. **Generated questions** are stored in MongoDB (`pollgen.pollquestions`) and can be retrieved via the backend API.
+4. **Frontend** displays AI-generated questions in `AIQuestionFeed.tsx` or allows manual poll creation in `CreateManualPoll.tsx`.
 
-> Currently, the transcription is **not displayed** to the user – it is **used internally** to generate polls using an LLM.
+## 📊 Phase 3 – Realtime Poll Launch and Analytics
 
-📅 Upcoming Phases:
+- **Poll Launch**: Hosts can launch polls via `CreatePollPage.tsx` or view AI-generated polls in `AIQuestionFeed.tsx`.
+- **Participant Tracking**: `Participants.tsx` tracks real-time poll participation.
+- **Leaderboard**: `Leaderboard.tsx` and `StudentLeaderboard.tsx` display live rankings.
+- **Analytics**: `Reports.tsx` provides detailed poll performance metrics.
 
-* Phase 2: LLM-based Poll Generation
-* Phase 3: Realtime Poll Launch and Analytics
+## 📦 Tech Stack
+
+### Backend
+- **Node.js + Express + TypeScript**: REST API and WebSocket server
+- **MongoDB**: Stores poll configurations and questions
+- **WebSocket**: Real-time audio and transcription streaming
+
+### Frontend
+- **React 19 + TypeScript + Vite**: Fast, modern frontend
+- **TailwindCSS**: Styling
+- **React Router**: Navigation
+- **Recharts**: Data visualization
+- **Framer Motion**: Animations
+- **React Hook Form**: Form handling
+
+### Services
+- **Whisper Service**: Python FastAPI with Faster-Whisper for transcription
+- **Pollgen-LLM**: Python FastAPI with Gemini or Ollama for poll generation
+
+## 🛠️ Features
+
+- **Real-time Transcription**: Live audio capture and transcription for hosts and guests
+- **AI Poll Generation**: Automatic poll creation based on lecture content
+- **Manual Poll Creation**: Custom poll creation via `CreateManualPoll.tsx`
+- **Dashboards**: Host (`HostDashboard.tsx`) and student (`StudentDashboard.tsx`) interfaces
+- **Participant Tracking**: Real-time monitoring in `Participants.tsx`
+- **Leaderboard**: Live rankings in `Leaderboard.tsx`
+- **Analytics**: Detailed reports in `Reports.tsx`
+- **Guest Access**: Simplified audio input for guests via `GuestPage.tsx`
+- **Customizable Settings**: Question frequency, type, and difficulty controls
+
+## 🛠️ Development Workflow
+
+- **Turborepo**: Use `--filter` to target specific apps (e.g., `pnpm --filter @poll-automation/backend run dev`).
+- **pnpm**: Add dependencies with `pnpm add <package> --filter <workspace>`.
+- **Git**:
+  - Work in feature branches (e.g., `git checkout -b feature/audio-streaming`).
+  - Submit PRs to the `development` branch.
+  - Include both transcription and web app teams in PR reviews.
+
+<!-- ## 🧪 Testing
+
+- **Unit Tests**: Located in `apps/backend/__tests__` and `apps/frontend/src/__tests__`.
+- **Integration Tests**: Cover backend ↔ Whisper ↔ LLM flows.
+- Run tests: `pnpm test` -->
+
+## 🛠️ Troubleshooting
+
+- **pnpm Errors**: Run `pnpm install` in the root to sync dependencies.
+- **WebSocket Issues**: Verify `WHISPER_WS_URL` and `LLM_FORWARD_URL` in `.env` files.
+- **MongoDB Errors**: Ensure MongoDB is running on `mongodb://localhost:27017`.
+- **Whisper Service**: Confirm the correct model size in `services/whisper/.env`.
+- **TypeScript Errors**: Check `tsconfig.json` paths for `@poll-automation/types`.
+
+<!-- ## 📄 License
+
+Internal use only. Contact project maintainers for details. -->
 
