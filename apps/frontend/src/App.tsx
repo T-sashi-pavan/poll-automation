@@ -22,6 +22,7 @@ import CreatePollPage from './pages/CreatePollPage';
 import ContactUs from './pages/ContactUs';
 import ChangePassword from './components/student/ChangePassword';
 import GuestPage from './pages/guest/GuestPage';
+import NotFound from './pages/NotFound';
 
 
 // Student dashboard section imports
@@ -97,6 +98,7 @@ function App() {
         <Route path="change-password" element={<ChangePassword />} />
         <Route path="active-sessions" element={<ActiveSessions />} />
       </Route>
+      <Route path="*" element={<NotFound />} />
     </Routes>
             </div>
           </Router>
