@@ -1,120 +1,205 @@
-import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { Mic, MicOff, Volume2, Activity, Pause, Play } from 'lucide-react';
-import DashboardLayout from '../components/DashboardLayout';
-import GlassCard from '../components/GlassCard';
-import GuestLinkGenerator from '../components/host/GuestLinkGenerator';
-import { Toaster } from 'react-hot-toast';
+import { useState, useEffect, useRef } from "react";
+import { motion } from "framer-motion";
+import { Mic, MicOff, Volume2, Activity, Pause, Play } from "lucide-react";
+import DashboardLayout from "../components/DashboardLayout";
+import GlassCard from "../components/GlassCard";
+import GuestLinkGenerator from "../components/host/GuestLinkGenerator";
+import { Toaster } from "react-hot-toast";
+import { getMicrophones } from "../transcription/utils/micManager";
+import { encodeWAV } from "../transcription/utils/wavEncoder";
 
 const AudioCapture = () => {
   const [isRecording, setIsRecording] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
-  const [transcription, setTranscription] = useState('');
-  const [selectedMic, setSelectedMic] = useState('default');
-  const [waveformData, setWaveformData] = useState<number[]>(Array(50).fill(0));
+  const [transcription, setTranscription] = useState("");
+  const [selectedMic, setSelectedMic] = useState(
+    () => localStorage.getItem("selectedMic") || "default"
+  );
+  const [micDevices, setMicDevices] = useState<{ id: string; name: string }[]>(
+    []
+  );
   const [downloaded, setDownloaded] = useState(false);
+  const [waveformData, setWaveformData] = useState<number[]>(Array(50).fill(0));
+  const [volume, setVolume] = useState(0); // 👈 Added for live volume tracking
 
+  const socketRef = useRef<WebSocket | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const scriptNodeRef = useRef<ScriptProcessorNode | null>(null);
+  const audioBufferRef = useRef<Float32Array[]>([]);
+  const pausedRef = useRef<boolean>(false);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Mock microphone devices
-  const micDevices = [
-    { id: 'default', name: 'Default Microphone' },
-    { id: 'external', name: 'External USB Microphone' },
-    { id: 'headset', name: 'Bluetooth Headset' },
-  ];
+  const CHUNK_INTERVAL = Math.max(
+    1000,
+    parseInt(import.meta.env.VITE_CHUNK_INTERVAL || "30000")
+  );
 
-  const downloadTranscript = () => {
-    if (!transcription) return;
-
-    const element = document.createElement("a");
-    const file = new Blob([transcription], { type: "text/plain" });
-
-    element.href = URL.createObjectURL(file);
-    element.download = `transcript-${Date.now()}.txt`;
-    document.body.appendChild(element); // Required for Firefox
-    element.click();
-    document.body.removeChild(element);
-    setDownloaded(true);
-    setTimeout(() => setDownloaded(false), 2000);
-  };
-
-
-  // Simulate waveform animation
   useEffect(() => {
-    if (isRecording && !isPaused) {
-      const interval = setInterval(() => {
-        setWaveformData(prev => {
-          const newData = [...prev];
-          for (let i = 0; i < newData.length; i++) {
-            newData[i] = Math.random() * 100;
-          }
-          return newData;
-        });
-      }, 100);
+    const fetchMicrophones = async () => {
+      const devices = await getMicrophones();
+      const formatted = devices.map((device) => ({
+        id: device.deviceId,
+        name: device.label || `Microphone (${device.deviceId.slice(0, 5)})`,
+      }));
+      setMicDevices(formatted);
 
-      return () => clearInterval(interval);
-    }
-  }, [isRecording, isPaused]);
-
-  //adding real-time transcription logic
-  useEffect(() => {
-  //       if (isRecording && !isPaused) {
-  //     const mockTranscriptions = [
-  //       "Today we're going to discuss React hooks and their implementation...",
-  //       "State management is crucial for building scalable applications...",
-  //       "Let's explore the useEffect hook and its dependency array...",
-  //       "Component lifecycle methods can be replaced with hooks...",
-  //       "Error boundaries are important for handling runtime errors..."
-  //     ];
-
-  //     const interval = setInterval(() => {
-  //       const randomText = mockTranscriptions[Math.floor(Math.random() * mockTranscriptions.length)];
-  //       setTranscription(prev => prev + " " + randomText);
-  //       setConfidence(Math.random() * 30 + 70); // 70-100% confidence
-  //     }, 3001);
-
-  //     return () => clearInterval(interval);
-  //   }
-  // }, [isRecording, isPaused]);
-  const socket = new WebSocket("ws://localhost:5001/ws/transcripts");
-  socket.onopen = () => {
-    console.log("Connected to transcript WebSocket");
-  };
-  socket.onmessage = async (event) => {
-    const data = JSON.parse(event.data);
-    if (data.status === "updated") {
-      console.log("Transcript update received!");
-      try {
-        const res = await fetch("http://localhost:5001/transcripts");
-        const json = await res.json();
-        setTranscription(json.text || ""); 
-      } catch (err) {
-        console.error("Failed to fetch transcript:", err);
+      if (!formatted.some((d) => d.id === selectedMic)) {
+        setSelectedMic("default");
       }
+    };
+
+    fetchMicrophones();
+  }, []);
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          deviceId:
+            selectedMic === "default" ? undefined : { exact: selectedMic },
+          echoCancellation: false,
+          noiseSuppression: false,
+          autoGainControl: false,
+        },
+      });
+
+      const audioContext = new AudioContext({ sampleRate: 16000 });
+      const source = audioContext.createMediaStreamSource(stream);
+      const processor = audioContext.createScriptProcessor(4096, 1, 1);
+
+      processor.onaudioprocess = (e) => {
+        const input = e.inputBuffer.getChannelData(0);
+
+        // Always update volume for visual feedback
+        const avg = input.reduce((a, b) => a + Math.abs(b), 0) / input.length;
+        setVolume(Math.min(100, avg * 1000)); // Adjusted scale
+
+        // Optional: visual waveform bars
+        const newWave = waveformData.map(() => Math.random() * avg * 100);
+        setWaveformData(newWave);
+
+        // Only buffer audio when not paused
+        if (!pausedRef.current) {
+          audioBufferRef.current.push(new Float32Array(input));
+        }
+      };
+
+      source.connect(processor);
+
+      // Connect to a dummy gain node to enable processing without audio output
+      const gainNode = audioContext.createGain();
+      gainNode.gain.value = 0; // Silent output
+      processor.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+
+      const ws = new WebSocket(import.meta.env.VITE_BACKEND_WS_URL as string);
+      ws.binaryType = "arraybuffer";
+
+      ws.onopen = () => {
+        ws.send(
+          JSON.stringify({
+            type: "start",
+            guestId: "host",
+            meetingId: "yourRoomCodeHere",
+          })
+        );
+
+        intervalRef.current = setInterval(() => {
+          if (audioBufferRef.current.length === 0) return;
+
+          const merged = mergeBuffers(audioBufferRef.current);
+          const wav = encodeWAV(merged, 16000);
+          ws.send(wav);
+          audioBufferRef.current = [];
+        }, CHUNK_INTERVAL);
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.type === "transcription" && typeof data.text === "string") {
+            setTranscription((prev) => prev + " " + data.text);
+          }
+        } catch (e) {
+          console.error("Invalid JSON from backend:", event.data);
+        }
+      };
+
+      socketRef.current = ws;
+      audioContextRef.current = audioContext;
+      scriptNodeRef.current = processor;
+      setIsRecording(true);
+    } catch (err) {
+      console.error("🎙️ Mic access error", err);
     }
   };
-  socket.onerror = (err) => {
-    console.error("WebSocket error:", err);
-  };
-  return () => {
-    socket.close();
-  };
-}, []);
+
+const stopRecording = () => {
+  if (audioContextRef.current) {
+    audioContextRef.current.close();
+    audioContextRef.current = null;
+  }
+  if (scriptNodeRef.current) {
+    try {
+      scriptNodeRef.current.disconnect();
+    } catch (_) {}
+    scriptNodeRef.current = null;
+  }
+  if (intervalRef.current) {
+    clearInterval(intervalRef.current);
+    intervalRef.current = null;
+  }
+  if (socketRef.current?.readyState === WebSocket.OPEN) {
+    socketRef.current.close();
+  }
+  audioBufferRef.current = [];
+  setIsRecording(false);
+  setIsPaused(false);
+  setVolume(0);
+  pausedRef.current = false; // ✅ important to reset
+};
+
+
   const toggleRecording = () => {
     if (isRecording) {
-      setIsRecording(false);
-      setIsPaused(false);
+      stopRecording();
     } else {
-      setIsRecording(true);
-      setTranscription('');
+      startRecording();
     }
   };
 
   const togglePause = () => {
-    setIsPaused(!isPaused);
+    setIsPaused((prev) => {
+      pausedRef.current = !prev;
+      return !prev;
+    });
   };
 
   const clearTranscription = () => {
-    setTranscription('');
+    setTranscription("");
+  };
+
+  const downloadTranscript = () => {
+    const blob = new Blob([transcription], { type: "text/plain" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `transcript-${Date.now()}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setDownloaded(true);
+    setTimeout(() => setDownloaded(false), 2000);
+  };
+
+  const mergeBuffers = (chunks: Float32Array[]) => {
+    const length = chunks.reduce((acc, cur) => acc + cur.length, 0);
+    const result = new Float32Array(length);
+    let offset = 0;
+    for (let chunk of chunks) {
+      result.set(chunk, offset);
+      offset += chunk.length;
+    }
+    return result;
   };
 
   return (
@@ -129,16 +214,21 @@ const AudioCapture = () => {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold text-white mb-2">Audio Capture</h1>
-            <p className="text-gray-400">Real-time audio recording and transcription</p>
+            <p className="text-gray-400">
+              Real-time audio recording and transcription
+            </p>
           </div>
           <div className="flex items-center space-x-4">
-            <div className={`px-3 py-1 rounded-full text-sm font-medium ${isRecording
-              ? isPaused
-                ? 'bg-yellow-500/20 text-yellow-400'
-                : 'bg-green-500/20 text-green-400'
-              : 'bg-gray-500/20 text-gray-400'
-              }`}>
-              {isRecording ? (isPaused ? 'Paused' : 'Recording') : 'Stopped'}
+            <div
+              className={`px-3 py-1 rounded-full text-sm font-medium ${
+                isRecording
+                  ? isPaused
+                    ? "bg-yellow-500/20 text-yellow-400"
+                    : "bg-green-500/20 text-green-400"
+                  : "bg-gray-500/20 text-gray-400"
+              }`}
+            >
+              {isRecording ? (isPaused ? "Paused" : "Recording") : "Stopped"}
             </div>
           </div>
         </div>
@@ -148,25 +238,23 @@ const AudioCapture = () => {
           {/* Recording Controls */}
           <GlassCard className="p-6">
             <h3 className="text-xl font-bold text-white mb-4">Recording Controls</h3>
-            <div className="space-y-4">
+            <div className="space-y-8">
               <div className="flex items-center justify-center">
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={toggleRecording}
-                  className={`w-20 h-20 rounded-full flex items-center justify-center ${isRecording
-                    ? 'bg-red-500 hover:bg-red-600'
-                    : 'bg-primary-500 hover:bg-primary-600'
-                    } transition-colors duration-200`}
+                  className={`px-6 py-3 rounded-full text-lg font-semibold shadow-md transition duration-300 ease-in-out
+    ${isRecording
+                      ? 'bg-red-600 text-white hover:bg-red-700 shadow-red-500/30'
+                      : 'bg-green-500 text-white hover:bg-green-600 shadow-green-500/30'
+                    }`}
                 >
-                  {isRecording ? (
-                    <MicOff className="w-8 h-8 text-white" />
-                  ) : (
-                    <Mic className="w-8 h-8 text-white" />
-                  )}
+                  {isRecording ? "STOP" : "START"}
                 </motion.button>
               </div>
 
+              {/* Mic Toggle and Clear Button */}
               <div className="flex items-center justify-center space-x-4">
                 <motion.button
                   whileHover={{ scale: 1.02 }}
@@ -176,9 +264,9 @@ const AudioCapture = () => {
                   className="px-4 py-2 bg-white/10 rounded-lg text-white hover:bg-white/20 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
                 >
                   {isPaused ? (
-                    <Play className="w-4 h-4" />
+                    <MicOff className="w-4 h-4" /> // <-- Changed to MicOff
                   ) : (
-                    <Pause className="w-4 h-4" />
+                    <Mic className="w-4 h-4" />   // <-- Changed to Mic
                   )}
                 </motion.button>
 
@@ -192,11 +280,13 @@ const AudioCapture = () => {
                 </motion.button>
               </div>
             </div>
-          </GlassCard>
+          </GlassCard>
 
           {/* Microphone Settings */}
           <GlassCard className="p-6">
-            <h3 className="text-xl font-bold text-white mb-4">Microphone Settings</h3>
+            <h3 className="text-xl font-bold text-white mb-4">
+              Microphone Settings
+            </h3>
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
@@ -204,18 +294,30 @@ const AudioCapture = () => {
                 </label>
                 <select
                   value={selectedMic}
-                  onChange={(e) => setSelectedMic(e.target.value)}
+                  onChange={(e) => {
+                    setSelectedMic(e.target.value);
+                    localStorage.setItem("selectedMic", e.target.value);
+                  }}
                   className="w-full bg-white/10 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
                 >
-                  {/* System Speaker Option */}
-                  <option value="system-speaker" className="bg-gray-800">
-                    System Speaker
+                  <option value="default" className="bg-gray-800">
+                    Default Microphone
                   </option>
-                  {micDevices.map(device => (
-                    <option key={device.id} value={device.id} className="bg-gray-800">
-                      {device.name}
+                  {micDevices.length > 0 ? (
+                    micDevices.map((device) => (
+                      <option
+                        key={device.id}
+                        value={device.id}
+                        className="bg-gray-800"
+                      >
+                        {device.name}
+                      </option>
+                    ))
+                  ) : (
+                    <option disabled className="bg-gray-800">
+                      No microphone devices found
                     </option>
-                  ))}
+                  )}
                 </select>
               </div>
 
@@ -225,41 +327,31 @@ const AudioCapture = () => {
                 </label>
                 <div className="flex items-center space-x-3">
                   <Volume2 className="w-4 h-4 text-gray-400" />
-                  <div className="flex-1 bg-gray-700 rounded-full h-2">
-                    <div className="bg-primary-500 rounded-full h-2 w-3/4" />
+                  <div className="flex-1 bg-gray-700 rounded-full h-2 overflow-hidden">
+                    <div
+                      className="bg-primary-500 rounded-full h-2 transition-all duration-100 ease-linear"
+                      style={{ width: `${volume}%` }}
+                    />
                   </div>
-                  <span className="text-sm text-gray-400">75%</span>
+                  <span className="text-sm text-gray-400">
+                    {Math.round(volume)}%
+                  </span>
                 </div>
               </div>
             </div>
           </GlassCard>
-
-
-          {/* Waveform Visualizer */}
-          <GlassCard className="p-6">
-            <h3 className="text-xl font-bold text-white mb-4">Audio Waveform</h3>
-            <div className="bg-black/20 rounded-lg p-4 h-32 flex items-end justify-center space-x-1">
-              {waveformData.map((height, index) => (
-                <motion.div
-                  key={index}
-                  animate={{ height: `${height}%` }}
-                  transition={{ duration: 0.1 }}
-                  className="bg-gradient-to-t from-primary-500 to-secondary-500 w-2 rounded-t-sm min-h-[2px]"
-                />
-              ))}
-            </div>
-          </GlassCard>
         </div>
-        {/* Generate Guest Link Button */}
+
         <div>
           <Toaster position="top-right" reverseOrder={false} />
           <GuestLinkGenerator meetingId="yourRoomCodeHere" />
         </div>
 
-        {/* Transcription Output */}
         <GlassCard className="p-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-2">
-            <h3 className="text-xl font-bold text-white">Real-time Transcription</h3>
+            <h3 className="text-xl font-bold text-white">
+              Real-time Transcription
+            </h3>
             <div className="flex items-center space-x-2">
               <Activity className="w-4 h-4 text-primary-400" />
               <span className="text-sm text-gray-400">Live</span>
@@ -278,16 +370,14 @@ const AudioCapture = () => {
               <div className="flex items-center justify-center h-full">
                 <p className="text-gray-500 text-center">
                   {isRecording
-                    ? 'Listening for speech...'
-                    : 'Click the microphone to start recording'
-                  }
+                    ? "Listening for speech..."
+                    : "Click the microphone to start recording"}
                 </p>
               </div>
             )}
           </div>
         </GlassCard>
 
-        {/* Action Buttons */}
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
           <motion.button
             whileHover={{ scale: 1.05 }}

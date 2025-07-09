@@ -65,8 +65,8 @@ const Settings = () => {
     enableNotifications: true,
 
     // Audio Settings
-    selectedMicrophone: "default",
-    microphoneVolume: 75,
+    selectedMicrophone: 'default',
+    microphoneVolume: 100,
     enableAudioFeedback: true,
 
     // Security Settings
