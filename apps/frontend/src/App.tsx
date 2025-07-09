@@ -23,6 +23,7 @@ import ContactUs from './pages/ContactUs';
 import ChangePassword from './components/student/ChangePassword';
 import GuestPage from './pages/guest/GuestPage';
 import NotFound from './pages/NotFound';
+import ResetPasswordPage from './pages/ResetPasswordPage';
 
 
 // Student dashboard section imports

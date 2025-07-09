@@ -2,14 +2,14 @@ import dotenv from 'dotenv';
 // Load environment variables first
 dotenv.config();
 
-import { setupWebSocketServer } from './websocket/connection';
+// import { setupWebSocketServer } from './websocket/connection';
 import app from './app';
 import connectDB from './web/config/db';
 import http from 'http';
 import { initializeStudentSocket } from './websocket/studentWebSocket';
 import { mongoPollingWatcher } from './services/mongoPollingWatcher';
 
-const PORT = process.env.PORT || 3001; // Changed from 5003 to 3001 to match .env
+const PORT = process.env.PORT || 3000; // Changed from 5003 to 3001 to match .env
 const server = http.createServer(app);
 
 // setupWebSocketServer(server);

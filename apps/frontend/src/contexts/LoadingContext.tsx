@@ -14,7 +14,7 @@ export function LoadingProvider({ children }: { children: ReactNode }) {
     // Simulate initial load time
     const timer = setTimeout(() => {
       setIsLoading(false);
-    }, 3001);
+    }, 3000);
 
     return () => clearTimeout(timer);
   }, []);

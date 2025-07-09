@@ -249,7 +249,7 @@ class MongoDBChangeWatcher {
     // Restart after a short delay
     setTimeout(() => {
       this.startWatching();
-    }, 3001);
+    }, 3000);
   }
 }
 

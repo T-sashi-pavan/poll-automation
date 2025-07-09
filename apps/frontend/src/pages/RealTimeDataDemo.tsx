@@ -88,7 +88,7 @@ const RealTimeDataDemo = () => {
   useEffect(() => {
     // Connect to the Socket.IO server with retry logic
     const connectSocket = () => {
-      const newSocket = io("http://localhost:3001", {
+      const newSocket = io("http://localhost:3000", {
         transports: ["websocket", "polling"],
         timeout: 20000,
         forceNew: true,
@@ -121,7 +121,7 @@ const RealTimeDataDemo = () => {
           if (connectionAttempts < 5) {
             connectSocket();
           }
-        }, 3001);
+        }, 3000);
       });
 
       newSocket.on("disconnect", () => {
@@ -159,7 +159,7 @@ const RealTimeDataDemo = () => {
             newSet.delete(change.data._id);
             return newSet;
           });
-        }, 3001); // Longer highlight duration
+        }, 3000); // Longer highlight duration
 
         addRecentChange(change);
         setLastActivity(new Date());
@@ -260,7 +260,7 @@ const RealTimeDataDemo = () => {
     // Auto-remove toast after 3 seconds
     setTimeout(() => {
       setToasts((prev) => prev.filter((toast) => toast.id !== id));
-    }, 3001);
+    }, 3000);
   };
 
   const playNotificationSound = () => {
@@ -288,7 +288,7 @@ const RealTimeDataDemo = () => {
 
   const addTestQuestion = async () => {
     try {
-      const response = await fetch("http://localhost:3001/api/questions", {
+      const response = await fetch("http://localhost:3000/api/questions", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
