@@ -24,6 +24,7 @@ import {
 import GlassCard from "../GlassCard";
 import { useCopyProtection } from "../../hooks/useCopyProtection";
 import io from "socket.io-client";
+import config from "../../config/websocket";
 
 interface DataChangeEvent {
   type: "insert" | "update" | "delete" | "replace";
@@ -72,7 +73,7 @@ const PollQuestionsPage: React.FC<PollQuestionsPageProps> = ({
   const [socket, setSocket] = useState<any>(null);
   const [connected, setConnected] = useState(false);
   const [backendQuestions, setBackendQuestions] = useState<BackendQuestion[]>(
-    []
+    [],
   );
   const [recentChanges, setRecentChanges] = useState<DataChangeEvent[]>([]);
   const [toasts, setToasts] = useState<
@@ -82,16 +83,16 @@ const PollQuestionsPage: React.FC<PollQuestionsPageProps> = ({
 
   // Transform backend questions to frontend format
   const transformBackendQuestions = (
-    backendQuestions: BackendQuestion[]
+    backendQuestions: BackendQuestion[],
   ): Question[] => {
     const activeQuestions = backendQuestions.filter(
-      (q) => q.is_active && q.is_approved
+      (q) => q.is_active && q.is_approved,
     );
 
     return activeQuestions.map((backendQ) => {
       // Find the correct answer index
       const correctAnswerIndex = backendQ.options.findIndex(
-        (option) => option === backendQ.correct_answer
+        (option) => option === backendQ.correct_answer,
       );
 
       // Map difficulty to frontend format
@@ -343,7 +344,7 @@ const PollQuestionsPage: React.FC<PollQuestionsPageProps> = ({
         setToasts((prev) => prev.filter((toast) => toast.id !== id));
       }, 3000);
     },
-    []
+    [],
   );
 
   const playNotificationSound = useCallback(() => {
@@ -362,7 +363,7 @@ const PollQuestionsPage: React.FC<PollQuestionsPageProps> = ({
       gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
       gainNode.gain.exponentialRampToValueAtTime(
         0.01,
-        audioContext.currentTime + 0.5
+        audioContext.currentTime + 0.5,
       );
 
       oscillator.start(audioContext.currentTime);
@@ -389,12 +390,7 @@ const PollQuestionsPage: React.FC<PollQuestionsPageProps> = ({
       if (!isComponentMounted) return;
 
       try {
-        const newSocket = io("http://localhost:3000", {
-          transports: ["websocket", "polling"],
-          timeout: 10000, // Shorter timeout
-          forceNew: true,
-          autoConnect: true,
-        });
+        const newSocket = io(config.socketIO.url, config.socketIO.options);
 
         setSocket(newSocket);
         currentAttempts += 1;
@@ -423,7 +419,7 @@ const PollQuestionsPage: React.FC<PollQuestionsPageProps> = ({
           if (currentAttempts <= 2) {
             showToast(
               `Connection failed (attempt ${currentAttempts})`,
-              "warning"
+              "warning",
             );
           }
 
@@ -436,7 +432,7 @@ const PollQuestionsPage: React.FC<PollQuestionsPageProps> = ({
             }, 3000);
           } else {
             console.log(
-              "Max connection attempts reached. Real-time features disabled."
+              "Max connection attempts reached. Real-time features disabled.",
             );
           }
         });
@@ -456,7 +452,7 @@ const PollQuestionsPage: React.FC<PollQuestionsPageProps> = ({
             setBackendQuestions(data.questions);
             setLastActivity(new Date());
             showToast(`Loaded ${data.questions.length} questions`, "info");
-          }
+          },
         );
 
         // Listen for real-time question changes
@@ -472,7 +468,7 @@ const PollQuestionsPage: React.FC<PollQuestionsPageProps> = ({
         newSocket.on("question-updated", (change: DataChangeEvent) => {
           console.log("📥 Question updated:", change);
           setBackendQuestions((prev) =>
-            prev.map((q) => (q._id === change.id ? change.data : q))
+            prev.map((q) => (q._id === change.id ? change.data : q)),
           );
           addRecentChange(change);
           setLastActivity(new Date());
@@ -482,7 +478,7 @@ const PollQuestionsPage: React.FC<PollQuestionsPageProps> = ({
         newSocket.on("question-deleted", (change: DataChangeEvent) => {
           console.log("📥 Question deleted:", change);
           setBackendQuestions((prev) =>
-            prev.filter((q) => q._id !== change.id)
+            prev.filter((q) => q._id !== change.id),
           );
           addRecentChange(change);
           setLastActivity(new Date());
@@ -507,7 +503,7 @@ const PollQuestionsPage: React.FC<PollQuestionsPageProps> = ({
             setBackendQuestions(data.questions);
             setLastActivity(new Date());
             showToast(`Loaded ${data.questions.length} questions`, "info");
-          }
+          },
         );
 
         // Listen for real-time question changes
@@ -525,7 +521,7 @@ const PollQuestionsPage: React.FC<PollQuestionsPageProps> = ({
           if (!isComponentMounted) return;
           console.log("📥 Question updated:", change);
           setBackendQuestions((prev) =>
-            prev.map((q) => (q._id === change.id ? change.data : q))
+            prev.map((q) => (q._id === change.id ? change.data : q)),
           );
           addRecentChange(change);
           setLastActivity(new Date());
@@ -536,7 +532,7 @@ const PollQuestionsPage: React.FC<PollQuestionsPageProps> = ({
           if (!isComponentMounted) return;
           console.log("📥 Question deleted:", change);
           setBackendQuestions((prev) =>
-            prev.filter((q) => q._id !== change.id)
+            prev.filter((q) => q._id !== change.id),
           );
           addRecentChange(change);
           setLastActivity(new Date());
@@ -715,7 +711,7 @@ const PollQuestionsPage: React.FC<PollQuestionsPageProps> = ({
                   <span className="text-green-400 font-medium">
                     {
                       backendQuestions.filter(
-                        (q) => q.is_active && q.is_approved
+                        (q) => q.is_active && q.is_approved,
                       ).length
                     }
                   </span>
@@ -955,7 +951,7 @@ const PollQuestionsPage: React.FC<PollQuestionsPageProps> = ({
                             +
                             {currentQuestion.points +
                               Math.floor(
-                                (timeLeft / currentQuestion.timeLimit) * 50
+                                (timeLeft / currentQuestion.timeLimit) * 50,
                               )}{" "}
                             points
                           </span>

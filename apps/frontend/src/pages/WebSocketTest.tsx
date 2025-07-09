@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import io from "socket.io-client";
+import config from "../config/websocket";
 
 const WebSocketTest = () => {
   const [connected, setConnected] = useState(false);
@@ -7,7 +8,7 @@ const WebSocketTest = () => {
 
   useEffect(() => {
     // Connect to the Socket.IO server
-    const newSocket = io("http://localhost:3000", {
+    const newSocket = io(config.socketIO.url, {
       transports: ["websocket", "polling"],
     });
 
@@ -51,7 +52,7 @@ const WebSocketTest = () => {
           headers: {
             "Content-Type": "application/json",
           },
-        }
+        },
       );
       const result = await response.json();
       setMessages((prev) => [

@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import io from "socket.io-client";
+import config from "../config/websocket";
 
 interface DataChangeEvent {
   type: "insert" | "update" | "delete" | "replace";
@@ -72,7 +73,7 @@ const RealTimeDataDemo = () => {
     if (autoRefresh && connected) {
       autoRefreshIntervalRef.current = setInterval(
         refreshData,
-        refreshInterval
+        refreshInterval,
       );
     } else if (autoRefreshIntervalRef.current) {
       clearInterval(autoRefreshIntervalRef.current);
@@ -88,7 +89,7 @@ const RealTimeDataDemo = () => {
   useEffect(() => {
     // Connect to the Socket.IO server with retry logic
     const connectSocket = () => {
-      const newSocket = io("http://localhost:3000", {
+      const newSocket = io(config.socketIO.url, {
         transports: ["websocket", "polling"],
         timeout: 20000,
         forceNew: true,
@@ -113,7 +114,7 @@ const RealTimeDataDemo = () => {
         setConnected(false);
         showToast(
           `Connection failed (attempt ${connectionAttempts + 1})`,
-          "warning"
+          "warning",
         );
 
         // Auto-retry connection after 5 seconds
@@ -139,7 +140,7 @@ const RealTimeDataDemo = () => {
           updateStats(data.questions);
           setLastActivity(new Date());
           showToast(`Loaded ${data.questions.length} questions`, "info");
-        }
+        },
       );
 
       // Listen for real-time question changes
@@ -165,7 +166,7 @@ const RealTimeDataDemo = () => {
         setLastActivity(new Date());
         showToast(
           `New question: ${change.data.question.substring(0, 50)}...`,
-          "success"
+          "success",
         );
         playNotificationSound();
         scrollToNewItem(true);
@@ -175,7 +176,7 @@ const RealTimeDataDemo = () => {
         console.log("📥 Question updated:", change);
         setQuestions((prev) => {
           const newQuestions = prev.map((q) =>
-            q._id === change.id ? change.data : q
+            q._id === change.id ? change.data : q,
           );
           updateStats(newQuestions);
           return newQuestions;
@@ -239,7 +240,7 @@ const RealTimeDataDemo = () => {
 
   const updateStats = (questionList: Question[]) => {
     const activeQuestions = questionList.filter(
-      (q) => q.is_active && q.is_approved
+      (q) => q.is_active && q.is_approved,
     ).length;
     setStats({
       totalQuestions: questionList.length,
@@ -279,7 +280,7 @@ const RealTimeDataDemo = () => {
     gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
     gainNode.gain.exponentialRampToValueAtTime(
       0.01,
-      audioContext.currentTime + 0.5
+      audioContext.currentTime + 0.5,
     );
 
     oscillator.start(audioContext.currentTime);
