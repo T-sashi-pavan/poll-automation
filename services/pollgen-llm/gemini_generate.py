@@ -84,7 +84,7 @@ def generate_questions_with_gemini(transcript, settings):
             **q,
             "created_at": datetime.utcnow(),
             "is_active": True,
-            "is_approved": False
+            "is_approved": True
         } for q in questions]
 
         collection.insert_many(enriched)
