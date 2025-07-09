@@ -5,15 +5,14 @@ import type {
   ClientToServerMessage,
   ServerToClientMessage,
   TranscriptionResult,
-  StartMessage
+  StartMessage,
 } from '@poll-automation/types';
 import { forwardToLLMBuffer } from '../services/llm-forwarder';
 
 dotenv.config();
 
 const WHISPER_WS_URL = process.env.WHISPER_WS_URL || 'ws://localhost:8000';
-console.log("🔗 Backend will connect to Whisper at:", WHISPER_WS_URL);
-
+console.log('🔗 Backend will connect to Whisper at:', WHISPER_WS_URL);
 
 interface ClientSession {
   frontendSocket: WebSocket;
@@ -22,11 +21,18 @@ interface ClientSession {
   meetingId: string;
 }
 
-export const setupWebSocketServer = (server: import('http').Server) => {
-  const wss = new WebSocketServer({ server });
-  console.log(`Backend WebSocket server attached to HTTP server.`);
+export const setupWebSocketServer = () => {
+  // Create a completely separate WebSocket server on port 3001
+  const wss = new WebSocketServer({
+    port: 3001,
+    path: '/transcription',
+  });
+  console.log(
+    `🎙️ Transcription WebSocket server running on ws://localhost:3001/transcription`
+  );
 
   wss.on('connection', (frontendSocket: WebSocket, req: IncomingMessage) => {
+    console.log(`🔗 New transcription WebSocket connection`);
     let session: ClientSession | null = null;
 
     frontendSocket.on('message', async (data: WebSocket.RawData, isBinary) => {
@@ -41,13 +47,15 @@ export const setupWebSocketServer = (server: import('http').Server) => {
               const startMsg = JSON.stringify({
                 type: 'start',
                 guestId: msg.guestId,
-                meetingId: msg.meetingId
+                meetingId: msg.meetingId,
               });
               whisperSocket.send(startMsg);
             });
 
             whisperSocket.on('message', (whisperData) => {
-              const transcript: TranscriptionResult = JSON.parse(whisperData.toString());
+              const transcript: TranscriptionResult = JSON.parse(
+                whisperData.toString()
+              );
 
               const forwardMsg: ServerToClientMessage = {
                 type: 'transcription',
@@ -55,7 +63,7 @@ export const setupWebSocketServer = (server: import('http').Server) => {
                 start: transcript.start,
                 end: transcript.end,
                 guestId: transcript.guestId,
-                meetingId: transcript.meetingId
+                meetingId: transcript.meetingId,
               };
 
               if (frontendSocket.readyState === WebSocket.OPEN) {
@@ -73,7 +81,7 @@ export const setupWebSocketServer = (server: import('http').Server) => {
               frontendSocket,
               whisperSocket,
               guestId: msg.guestId,
-              meetingId: msg.meetingId
+              meetingId: msg.meetingId,
             };
           }
         } else if (session?.whisperSocket?.readyState === WebSocket.OPEN) {

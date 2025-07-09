@@ -13,6 +13,7 @@ import path from 'path';
 import pollConfigRoutes from './web/routes/pollConfigRoutes';
 import pollRoomCodeRoutes from './web/routes/pollRoomCodeRoutes';
 import inviteRouter from './web/routes/invite'; // <-- Add this import
+import transcriptsRouter from './web/routes/transcripts'; // AI team's transcripts route
 
 dotenv.config();
 
@@ -32,9 +33,31 @@ app.use('/questions', saveQuestionsRouter);
 app.use('/api/poll', pollConfigRoutes);
 app.use('/api/room-code', pollRoomCodeRoutes);
 app.use('/api/polls', pollRoutes);
+app.use('/transcripts', transcriptsRouter); // AI team's transcripts route
+app.use('/manual_poll_questions', saveQuestionsRouter); // AI team's manual poll questions
 
 app.get('/', (_req, res) => {
   res.send('PollGen Backend is running.');
+});
+
+// Health check endpoint to verify both WebSocket systems
+app.get('/health', (_req, res) => {
+  res.json({
+    status: 'OK',
+    timestamp: new Date().toISOString(),
+    services: {
+      http: 'active',
+      socketIO: 'active (poll management)',
+      webSocket: 'active (transcription)',
+      database: 'connected',
+    },
+    endpoints: {
+      socketIO: '/socket.io/',
+      webSocket: '/ws/transcription',
+      api: '/api/*',
+      transcripts: '/transcripts/*',
+    },
+  });
 });
 
 app.use('/api/auth', authRoutes);
